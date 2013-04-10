@@ -48,6 +48,7 @@ namespace Buckminster
         public void DrawViewportMeshes(IGH_PreviewArgs args)
         {
             // Meshes aren't drawn.
+            Preview_DrawMeshes(args);
         }
 
         public void DrawViewportWires(IGH_PreviewArgs args)

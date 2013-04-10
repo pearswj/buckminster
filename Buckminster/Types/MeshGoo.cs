@@ -193,40 +193,13 @@ namespace Buckminster
         }
         public void DrawViewportMeshes(GH_PreviewMeshArgs args)
         {
-            // No meshes are drawn.   
+            // No meshes are drawn.  
+            args.Pipeline.DrawMeshShaded(Value.ToRhinoMesh(), args.Material);
         }
         public void DrawViewportWires(GH_PreviewWireArgs args)
         {
             if (Value == null) { return; }
-
-            // Draw edges (without duplication)
-            /*MeshHalfedgeList marker = new MeshHalfedgeList();
-            List<Rhino.Geometry.Line> lines = new List<Rhino.Geometry.Line>();
-            for (int i = 0; i < Value.Halfedges.Count; i++)
-            {
-                Halfedge halfedge = Value.Halfedges[i];
-
-                // Do not add line if halfedge is on the "do not draw" list
-                if (marker.Contains(halfedge.Name)) { continue; }
-
-                // Add line to list for halfedge
-                lines.Add(new Rhino.Geometry.Line(halfedge.Prev.Vertex.Position, halfedge.Vertex.Position));
-
-                // If halfedge has a pair, add it to the "do not draw" list
-                if (halfedge.Pair != null)
-                {
-                    try
-                    {
-                        marker.Add(Value.Halfedges[halfedge.Pair.Name]);
-                    }
-                    catch (KeyNotFoundException)
-                    {
-                        // no corresponding halfedge to prevent from being drawn
-                    }
-                }
-            }
-            args.Pipeline.DrawLines(lines, args.Color);*/
-            args.Pipeline.DrawLines(Value.ToLines(), args.Color);
+            args.Pipeline.DrawLines(Value.ToLines().ToArray(), args.Color, args.Thickness);
         }
         #endregion
 

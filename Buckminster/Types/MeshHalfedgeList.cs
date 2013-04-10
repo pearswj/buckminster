@@ -32,5 +32,25 @@ namespace Buckminster.Types.Collections
             this.Add(new Halfedge(vertex, next, prev, face, pair));
         }
         #endregion
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="he">halfedge to change</param>
+        /// <param name="new_vertex">new vertex</param>
+        /// <returns>true on success, otherwise false</returns>
+        public Boolean SetVertex(Halfedge he, Vertex new_vertex)
+        {
+            try
+            {
+                ChangeItemKey(he, new_vertex.Name + he.Prev.Vertex.Name);
+                ChangeItemKey(he.Next, he.Next.Vertex.Name + new_vertex.Name);
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+            he.Vertex = new_vertex;
+            return true;
+        }
     }
 }

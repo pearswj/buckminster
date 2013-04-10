@@ -54,6 +54,7 @@ namespace Buckminster
                 return new Vector3f((float)normal.X, (float)normal.Y, (float)normal.Z);
             }
         }
+        public int Sides { get { return GetVertices().Count; } }
         #endregion
 
         #region methods

@@ -54,6 +54,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Components\RibbonComponent.cs" />
     <Compile Include="Components\DragosComponent.cs" />
     <Compile Include="Components\DualComponent.cs" />
     <Compile Include="Components\ClosedPolylinesComponent.cs" />

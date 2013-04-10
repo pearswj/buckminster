@@ -20,7 +20,7 @@ namespace Buckminster
 
         public override GH_Exposure Exposure
         {
-            get { return GH_Exposure.hidden; }
+            get { return GH_Exposure.primary; }
         }
 
         /// <summary>
@@ -49,6 +49,8 @@ namespace Buckminster
             Mesh mesh = null;
             if (!DA.GetData(0, ref mesh)) { return; }
 
+            mesh = mesh.Duplicate();
+            
             List<Point3f> hp = new List<Point3f>();
             foreach (Halfedge h in mesh.Halfedges)
             {
