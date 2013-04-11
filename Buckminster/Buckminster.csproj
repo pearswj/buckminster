@@ -54,6 +54,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Components\ExtrudeComponent.cs" />
+    <Compile Include="Components\FlipComponent.cs" />
     <Compile Include="Components\RibbonComponent.cs" />
     <Compile Include="Components\DragosComponent.cs" />
     <Compile Include="Components\DualComponent.cs" />

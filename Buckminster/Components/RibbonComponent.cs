@@ -18,7 +18,7 @@ namespace Buckminster
         public RibbonComponent()
             : base("Buckminster's Ribbon Component", "Ribbon",
                 "Gives thickness to mesh edges.",
-                "Buckminster", "Utils")
+                "Buckminster", "Modify")
         {
         }
 

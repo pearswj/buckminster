@@ -197,6 +197,136 @@ namespace Buckminster
             }
             return new Mesh(points, ListFacesByVertexIndices());
         }
+        public Mesh Ribbon(float offset)
+        {
+            // TODO: handle open meshes
+
+            Mesh ribbon = Duplicate();
+            //ribbon.Faces.Clear();
+            var orig_faces = ribbon.Faces.ToArray();
+
+            List<List<Vertex>> all_new_vertices = new List<List<Vertex>>();
+
+            for (int k = 0; k < Vertices.Count; k++)
+            {
+                Vertex v = ribbon.Vertices[k];
+                List<Vertex> new_vertices = new List<Vertex>();
+                Halfedge edge = v.Halfedge;
+                do
+                {
+                    Vector3f normal = edge.Pair.Face.Normal;
+                    Halfedge edge2 = edge.Pair.Prev;
+
+                    Vector3f o1 = Vector3f.CrossProduct(edge.Vector, normal);
+                    Vector3f o2 = Vector3f.CrossProduct(normal, edge2.Vector);
+                    o1.Unitize();
+                    o2.Unitize();
+                    o1 *= offset;
+                    o2 *= offset;
+
+                    Line l1 = new Line(edge.Vertex.Position + o1, edge.Prev.Vertex.Position + o1);
+                    Line l2 = new Line(edge2.Vertex.Position + o2, edge2.Prev.Vertex.Position + o2);
+
+                    double a, b;
+                    Rhino.Geometry.Intersect.Intersection.LineLine(l1, l2, out a, out b);
+                    Point3d new_point = l1.PointAt(a);
+                    Vertex new_vertex = new Vertex(new Point3f((float)new_point.X, (float)new_point.Y, (float)new_point.Z));
+                    ribbon.Vertices.Add(new_vertex);
+                    new_vertices.Add(new_vertex);
+                    edge = edge2;
+                } while (edge != v.Halfedge);
+
+                all_new_vertices.Add(new_vertices);
+                ribbon.Faces.Add(new_vertices);
+            }
+
+            // change edges to reference new vertices (and cull old vertices)
+            for (int k = 0; k < Vertices.Count; k++)
+            {
+                Vertex v = ribbon.Vertices[k];
+                int c = 0;
+                Halfedge edge = v.Halfedge;
+                do
+                {
+                    //edge.Pair.Prev.Vertex = all_new_vertices[k][c++];
+                    ribbon.Halfedges.SetVertex(edge.Pair.Prev, all_new_vertices[k][c++]);
+                    edge = edge.Pair.Prev;
+                } while (edge != v.Halfedge);
+            }
+
+            ribbon.Vertices.RemoveRange(0, Vertices.Count); // cull old vertices
+
+            // use existing edges to create 'ribbon' faces
+            MeshHalfedgeList temp = new MeshHalfedgeList();
+            for (int i = 0; i < Halfedges.Count; i++)
+            {
+                temp.Add(ribbon.Halfedges[i]);
+            }
+            List<Halfedge> items = temp.GetUnique();
+
+            foreach (Halfedge halfedge in items)
+            {
+                Vertex[] new_vertices = new Vertex[]{
+                    halfedge.Vertex,
+                    halfedge.Prev.Vertex,
+                    halfedge.Pair.Vertex,
+                    halfedge.Pair.Prev.Vertex
+                };
+                ribbon.Faces.Add(new_vertices);
+            }
+
+            // remove original faces, leaving just the ribbon
+            //var orig_faces = Enumerable.Range(0, Faces.Count).Select(i => ribbon.Faces[i]);
+            foreach (Face item in orig_faces)
+            {
+                ribbon.Faces.Remove(item);
+            }
+
+            // search and link pairs
+            ribbon.Halfedges.MatchPairs();
+
+            return ribbon;
+        }
+        public Mesh Extrude(float distance)
+        {
+            Mesh ext = Offset(0.5f * distance);
+            Mesh top = Offset(-0.5f * distance);
+
+            top.Halfedges.Flip();
+
+            ext.Vertices.AddRange(top.Vertices);
+            foreach (var h in top.Halfedges)
+            {
+                ext.Halfedges.Add(h);
+            }
+            foreach (var f in top.Faces)
+            {
+                ext.Faces.Add(f);
+            }
+
+            var naked = Halfedges.Select((item, index) => index)
+                .Where(i => Halfedges[i].Pair == null).ToList();
+
+            if (naked.Count > 0)
+            {
+                int n = Halfedges.Count;
+                int failed = 0;
+                foreach (var i in naked)
+                {
+                    Vertex[] vertices = new Vertex[] {
+                        ext.Halfedges[i].Vertex,
+                        ext.Halfedges[i].Prev.Vertex,
+                        ext.Halfedges[i + n].Vertex,
+                        ext.Halfedges[i + n].Prev.Vertex
+                    };
+                    if (ext.Faces.Add(vertices) == false) { failed++; }
+                }
+            }
+
+            ext.Halfedges.MatchPairs();
+
+            return ext;
+        }
         #endregion
 
         #region methods
@@ -295,86 +425,6 @@ namespace Buckminster
         public List<Line> ToLines()
         {
             return Halfedges.GetUnique().Select(h => new Rhino.Geometry.Line(h.Prev.Vertex.Position, h.Vertex.Position)).ToList();
-        }
-        public Mesh Ribbon(float offset)
-        {
-            Mesh ribbon = Duplicate();
-            //ribbon.Faces.Clear();
-
-            List<List<Vertex>> all_new_vertices = new List<List<Vertex>>();
-            
-            for (int k = 0; k < Vertices.Count; k++)
-            {
-                Vertex v = ribbon.Vertices[k];
-                List<Vertex> new_vertices = new List<Vertex>();
-                Halfedge edge = v.Halfedge;
-                do
-                {
-                    Vector3f normal = edge.Pair.Face.Normal;
-                    Halfedge edge2 = edge.Pair.Prev;
-
-                    Vector3f o1 = Vector3f.CrossProduct(edge.Vector, normal);
-                    Vector3f o2 = Vector3f.CrossProduct(normal, edge2.Vector);
-                    o1.Unitize();
-                    o2.Unitize();
-                    o1 *= offset;
-                    o2 *= offset;
-
-                    Line l1 = new Line(edge.Vertex.Position + o1, edge.Prev.Vertex.Position + o1);
-                    Line l2 = new Line(edge2.Vertex.Position + o2, edge2.Prev.Vertex.Position + o2);
-                    
-                    double a, b;
-                    Rhino.Geometry.Intersect.Intersection.LineLine(l1, l2, out a, out b);
-                    Point3d new_point = l1.PointAt(a);
-                    Vertex new_vertex = new Vertex(new Point3f((float)new_point.X, (float)new_point.Y, (float)new_point.Z));
-                    ribbon.Vertices.Add(new_vertex);
-                    new_vertices.Add(new_vertex);
-                    edge = edge2;
-                } while (edge != v.Halfedge);
-
-                all_new_vertices.Add(new_vertices);
-                ribbon.Faces.Add(new_vertices);
-            }
-
-            // change edges to reference new vertices (and cull old vertices)
-            for (int k = 0; k < Vertices.Count; k++)
-            {
-                Vertex v = ribbon.Vertices[k];
-                int c = 0;
-                Halfedge edge = v.Halfedge;
-                do
-                {
-                    //edge.Pair.Prev.Vertex = all_new_vertices[k][c++];
-                    ribbon.Halfedges.SetVertex(edge.Pair.Prev, all_new_vertices[k][c++]);
-                    edge = edge.Pair.Prev;
-                } while (edge != v.Halfedge);
-             }
-
-            ribbon.Vertices.RemoveRange(0, Vertices.Count); // cull old vertices
-
-            // use existing edges to create 'ribbon' faces
-            MeshHalfedgeList temp = new MeshHalfedgeList();
-            for (int i = 0; i < Halfedges.Count; i++)
-            {
-                temp.Add(ribbon.Halfedges[i]);
-            }
-            List<Halfedge> items = temp.GetUnique();
-           
-            foreach (Halfedge halfedge in items)
-            {
-                Vertex[] new_vertices = new Vertex[]{
-                    halfedge.Vertex,
-                    halfedge.Prev.Vertex,
-                    halfedge.Pair.Vertex,
-                    halfedge.Pair.Prev.Vertex
-                };
-                ribbon.Faces.Add(new_vertices);
-            }
-
-            // search and link pairs
-            ribbon.Halfedges.MatchPairs();
-
-            return ribbon;
         }
         #endregion
     }

@@ -110,5 +110,29 @@ namespace Buckminster.Types.Collections
             }
             return unique;
         }
+        public void Flip()
+        {
+            int n = Count;
+            var vertices = new Vertex[n];
+            var edges = new Halfedge[n];
+            for (int i = 0; i < n; i++)
+            {
+                vertices[i] = this[i].Prev.Vertex;
+                edges[i] = this[i];
+            }
+            Clear();
+            for (int i = 0; i < n; i++)
+            {
+                var edge = edges[i];
+                var temp = edge.Next;
+                edge.Next = edge.Prev;
+                edge.Prev = temp;
+                edge.Vertex = vertices[i];
+            }
+            foreach (Halfedge edge in edges)
+            {
+                Add(edge);
+            }
+        }
     }
 }

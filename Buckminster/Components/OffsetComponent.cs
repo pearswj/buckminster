@@ -14,7 +14,7 @@ namespace Buckminster
         public OffsetComponent()
             : base("Buckminster's Offset Mesh", "Offset",
                 "Offsets a mesh by moving each vertex in the normal direction",
-                "Buckminster", "Utils")
+                "Buckminster", "Modify")
         {
         }
 

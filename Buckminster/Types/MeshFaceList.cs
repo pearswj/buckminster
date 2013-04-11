@@ -59,7 +59,46 @@ namespace Buckminster.Types.Collections
 
             return true;
         }
-        // TODO: Remove(Face item, Boolean cleanup)
+        public void Remove(Face item)
+        {
+            List<Halfedge> edges = new List<Halfedge>();
+            Halfedge edge = item.Halfedge;
+            do
+            {
+                edges.Add(edge);
+                m_mesh.Halfedges.Remove(edge);
+                edge = edge.Next;
+            } while (edge != item.Halfedge);
+
+            foreach (Halfedge e in edges)
+            {
+                if (e.Pair != null)
+                    e.Pair.Pair = null;
+                // if halfedge's vertex references halfedge, point it to another
+                if (e.Vertex.Halfedge == e)
+                {
+                    if (e.Pair != null)
+                        e.Vertex.Halfedge = e.Pair.Prev;
+                    else if (e.Next.Pair != null)
+                        e.Vertex.Halfedge = e.Next.Pair;
+                    else
+                    {
+                        // if all else fails, try searching through all of the halfedges for one which points to this vertex
+                        try
+                        {
+                            e.Vertex.Halfedge = m_mesh.Halfedges.First(i => i.Vertex == e.Vertex);
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            // nothing found, remove the vertex
+                            m_mesh.Vertices.Remove(e.Vertex);
+                        }
+                    }
+                }
+            }
+
+            base.Remove(item);
+        }
 
         /// <summary>
         /// Reduce an n-gon mesh face to triangles.
