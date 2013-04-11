@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Linq;
 
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
@@ -15,9 +16,8 @@ namespace Buckminster
         #region constructors
         public Mesh()
         {
-            Halfedges = new MeshHalfedgeList();
+            Halfedges = new MeshHalfedgeList(this);
             Vertices = new List<Vertex>();
-            //Faces = new List<Face>();
             Faces = new MeshFaceList(this);
         }
         /// <summary>
@@ -35,6 +35,9 @@ namespace Buckminster
             // Remove unused vertices
             source.Vertices.CullUnused();
 
+            //var faces = Enumerable.Range(0, source.Faces.Count).Select(i => source.TopologyVertices.IndicesFromFace(i));
+            //InitIndexed(source.TopologyVertices, faces);
+
             // Add vertices
             Vertices.Capacity = source.TopologyVertices.Count;
             foreach (Point3f p in source.TopologyVertices)
@@ -43,46 +46,35 @@ namespace Buckminster
             }
 
             // Add faces (and construct halfedges and store in hash table)
-            //Faces.Capacity = source.Faces.Count;
             for (int i = 0; i < source.Faces.Count; i++)
             {
-                int[] corners = source.TopologyVertices.IndicesFromFace(i);
-                int n = corners.Length;
-                Halfedge[] edges = new Halfedge[n];
-                // Create halfedges
-                for (int j = 0; j < n; j++)
-                {
-                    edges[j] = new Halfedge(Vertices[corners[(j + 1) % n]], null, null, null);
-                    Vertices[corners[(j + 1) % n]].Halfedge = edges[j];
-                }
-                Face newFace = new Face(edges[0]);
-                // Link halfedges to face, next and prev
-                for (int j = 0; j < n; j++)
-                {
-                    edges[j].Face = newFace;
-                    edges[j].Next = edges[(j + 1) % n];
-                    edges[j].Prev = edges[(j + n - 1) % n];
-                }
-                Faces.Add(newFace);
-                foreach (Halfedge h in edges) { Halfedges.Add(h); }
+                var vertices = source.TopologyVertices.IndicesFromFace(i).Select(v => Vertices[v]);
+                Faces.Add(vertices);
             }
 
             // Find and link halfedge pairs
-            for (int i = 0; i < Halfedges.Count; i++)
-            {
-                String rname = Halfedges[i].Prev.Vertex.Name + Halfedges[i].Vertex.Name;
-                try
-                {
-                    Halfedges[i].Pair = Halfedges[rname];
-                }
-                catch (KeyNotFoundException)
-                {
-                    // halfedge must be a boundary
-                }
-            }
+            Halfedges.MatchPairs();
         }
-        private Mesh(IEnumerable<Point3f> verticesByPoints, ICollection<int>[] facesByVertexIndices)
+        private Mesh(IEnumerable<Point3f> verticesByPoints, IEnumerable<IEnumerable<int>> facesByVertexIndices)
             : this()
+        {
+            //InitIndexed(verticesByPoints, facesByVertexIndices);
+
+            // Add vertices
+            foreach (Point3f p in verticesByPoints)
+            {
+                Vertices.Add(new Vertex(p));
+            }
+
+            foreach (IEnumerable<int> indices in facesByVertexIndices)
+            {
+                Faces.Add(indices.Select(i => Vertices[i]));
+            }
+
+            // Find and link halfedge pairs
+            Halfedges.MatchPairs();
+        }
+        private void InitIndexed(IEnumerable<Point3f> verticesByPoints, IEnumerable<IEnumerable<int>> facesByVertexIndices)
         {
             // Add vertices
             foreach (Point3f p in verticesByPoints)
@@ -90,44 +82,14 @@ namespace Buckminster
                 Vertices.Add(new Vertex(p));
             }
 
-            // Add faces (and construct halfedges and store in hash table)
-            //Faces.Capacity = facesByVertexIndices.Length;
-            for (int i = 0; i < facesByVertexIndices.Length; i++)
+            // Add faces
+            foreach (IEnumerable<int> indices in facesByVertexIndices)
             {
-                List<int> corners = new List<int>(facesByVertexIndices[i]);
-                int n = corners.Count;
-                Halfedge[] edges = new Halfedge[n];
-                // Create halfedges
-                for (int j = 0; j < n; j++)
-                {
-                    edges[j] = new Halfedge(Vertices[corners[(j + 1) % n]]);
-                    if (Vertices[corners[(j + 1) % n]].Halfedge == null)
-                    {
-                        Vertices[corners[(j + 1) % n]].Halfedge = edges[j];
-                    }
-                }
-                Face newFace = new Face(edges[0]);
-                // Link halfedges to face, next and prev (and add)
-                for (int j = 0; j < n; j++)
-                {
-                    edges[j].Face = newFace;
-                    edges[j].Next = edges[(j + 1) % n];
-                    edges[j].Prev = edges[(j + n - 1) % n];
-                    Halfedges.Add(edges[j]);
-                    // TODO: merge halfedges here
-                }
-                Faces.Add(newFace);
+                Faces.Add(indices.Select(i => Vertices[i]));
             }
 
             // Find and link halfedge pairs
-            for (int i = 0; i < Halfedges.Count; i++)
-            {
-                String rname = Halfedges[i].Prev.Vertex.Name + Halfedges[i].Vertex.Name;
-                if (Halfedges.Contains(rname))
-                {
-                    Halfedges[i].Pair = Halfedges[rname];
-                }
-            }
+            Halfedges.MatchPairs();
         }
         public Mesh Duplicate()
         {
@@ -235,14 +197,13 @@ namespace Buckminster
             }
             return new Mesh(points, ListFacesByVertexIndices());
         }
-        public Boolean Split(Face f, Vertex v1, Vertex v2)
-        {
-
-            return true;
-        }
         #endregion
 
         #region methods
+        /// <summary>
+        /// A string representation of the mesh, mimicking Grasshopper's mesh class.
+        /// </summary>
+        /// <returns>a string representation of the mesh</returns>
         public override string ToString()
         {
             return base.ToString() + string.Format(" (V:{0} F:{1})", Vertices.Count, Faces.Count);
@@ -333,31 +294,12 @@ namespace Buckminster
         }
         public List<Line> ToLines()
         {
-            // Draw edges (without duplication)
-            MeshHalfedgeList marker = new MeshHalfedgeList();
-            List<Rhino.Geometry.Line> lines = new List<Rhino.Geometry.Line>();
-            for (int i = 0; i < Halfedges.Count; i++)
-            {
-                Halfedge halfedge = Halfedges[i];
-
-                // Do not add line if halfedge is on the "do not draw" list
-                if (marker.Contains(halfedge.Name)) { continue; }
-
-                // Add line to list for halfedge
-                lines.Add(new Rhino.Geometry.Line(halfedge.Prev.Vertex.Position, halfedge.Vertex.Position));
-
-                // If halfedge has a pair, add it to the "do not draw" list
-                if (halfedge.Pair != null)
-                {
-                    marker.Add(Halfedges[halfedge.Pair.Name]);
-                }
-            }
-            return lines;
+            return Halfedges.GetUnique().Select(h => new Rhino.Geometry.Line(h.Prev.Vertex.Position, h.Vertex.Position)).ToList();
         }
         public Mesh Ribbon(float offset)
         {
             Mesh ribbon = Duplicate();
-            ribbon.Faces.Clear();
+            //ribbon.Faces.Clear();
 
             List<List<Vertex>> all_new_vertices = new List<List<Vertex>>();
             
@@ -387,33 +329,14 @@ namespace Buckminster
                     Vertex new_vertex = new Vertex(new Point3f((float)new_point.X, (float)new_point.Y, (float)new_point.Z));
                     ribbon.Vertices.Add(new_vertex);
                     new_vertices.Add(new_vertex);
-                    //edge2.Vertex = new_vertex; // point edge to one of the new vertices
                     edge = edge2;
                 } while (edge != v.Halfedge);
 
                 all_new_vertices.Add(new_vertices);
-
-                int n = new_vertices.Count;
-                Halfedge[] new_edges = new Halfedge[n];
-                for (int i = 0; i < n; i++)
-                {
-                    new_edges[i] = new Halfedge(new_vertices[i], null, null, null);
-                    new_vertices[i].Halfedge = new_edges[i];
-                }
-                Face new_face = new Face(new_edges[0]);
-                // Link halfedges to face, next and prev
-                for (int j = 0; j < n; j++)
-                {
-                    new_edges[j].Face = new_face;
-                    new_edges[j].Next = new_edges[(j + 1) % n];
-                    new_edges[j].Prev = new_edges[(j + n - 1) % n];
-                }
-                ribbon.Faces.Add(new_face);
-                foreach (Halfedge h in new_edges) { ribbon.Halfedges.Add(h); }
+                ribbon.Faces.Add(new_vertices);
             }
 
             // change edges to reference new vertices (and cull old vertices)
-            
             for (int k = 0; k < Vertices.Count; k++)
             {
                 Vertex v = ribbon.Vertices[k];
@@ -429,59 +352,27 @@ namespace Buckminster
 
             ribbon.Vertices.RemoveRange(0, Vertices.Count); // cull old vertices
 
-            MeshHalfedgeList marker = new MeshHalfedgeList();
-            List<Rhino.Geometry.Line> lines = new List<Rhino.Geometry.Line>();
+            // use existing edges to create 'ribbon' faces
+            MeshHalfedgeList temp = new MeshHalfedgeList();
             for (int i = 0; i < Halfedges.Count; i++)
             {
-                Halfedge halfedge = ribbon.Halfedges[i];
-
-                // Do not add line if halfedge is on the "do not draw" list
-                if (marker.Contains(halfedge.Name)) { continue; }
-
-                // Add line to list for halfedge
-
+                temp.Add(ribbon.Halfedges[i]);
+            }
+            List<Halfedge> items = temp.GetUnique();
+           
+            foreach (Halfedge halfedge in items)
+            {
                 Vertex[] new_vertices = new Vertex[]{
                     halfedge.Vertex,
                     halfedge.Prev.Vertex,
                     halfedge.Pair.Vertex,
                     halfedge.Pair.Prev.Vertex
                 };
-                int n = new_vertices.Length;
-                Halfedge[] new_edges = new Halfedge[n];
-                for (int j = 0; j < n; j++)
-                {
-                    new_edges[j] = new Halfedge(new_vertices[j], null, null, null);
-                    if (new_vertices[j].Halfedge == null) { new_vertices[j].Halfedge = new_edges[j]; }
-                }
-                Face new_face = new Face(new_edges[0]);
-                // Link halfedges to face, next and prev
-                for (int j = 0; j < n; j++)
-                {
-                    new_edges[j].Face = new_face;
-                    new_edges[j].Next = new_edges[(j + 1) % n];
-                    new_edges[j].Prev = new_edges[(j + n - 1) % n];
-                }
-                ribbon.Faces.Add(new_face);
-                foreach (Halfedge h in new_edges) { ribbon.Halfedges.Add(h); }
-
-                // If halfedge has a pair, add it to the "do not draw" list
-                if (halfedge.Pair != null)
-                {
-                    marker.Add(ribbon.Halfedges[halfedge.Pair.Name]);
-                }
+                ribbon.Faces.Add(new_vertices);
             }
 
             // search and link pairs
-            // TODO: link explicitly for existing halfedges (although maybe not much quicker...)
-            for (int i = 0; i < ribbon.Halfedges.Count; i++)
-            {
-                String rname = ribbon.Halfedges[i].Prev.Vertex.Name + ribbon.Halfedges[i].Vertex.Name;
-                if (ribbon.Halfedges.Contains(rname))
-                {
-                    ribbon.Halfedges[i].Pair = ribbon.Halfedges[rname];
-                }
-            }
-
+            ribbon.Halfedges.MatchPairs();
 
             return ribbon;
         }

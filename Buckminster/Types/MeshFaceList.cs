@@ -18,6 +18,50 @@ namespace Buckminster.Types.Collections
             return face.Name;
         }
         /// <summary>
+        /// Add a new face by its vertices. Will not allow the mesh to become non-manifold (e.g. by duplicating an existing halfedge).
+        /// </summary>
+        /// <param name="vertices">the vertices which define the face, given in anticlockwise order</param>
+        /// <returns>true on success, false on failure</returns>
+        public Boolean Add(IEnumerable<Vertex> vertices)
+        {
+            Vertex[] array = vertices.ToArray();
+
+            int n = array.Length;
+            Halfedge[] new_edges = new Halfedge[n]; // temporary container for new halfedges
+
+            // create new halfedges (it is only possible for each to reference their vertex at this point)
+            for (int i = 0; i < n; i++)
+            {
+                new_edges[i] = new Halfedge(array[i], null, null, null);
+            }
+
+            Face new_face = new Face(new_edges[0]); // create new face
+
+            // link halfedges to face, next and prev
+            // stop if a similiar halfedge is found in the mesh (avoid duplicates)
+            for (int i = 0; i < n; i++)
+            {
+                new_edges[i].Face = new_face;
+                new_edges[i].Next = new_edges[(i + 1) % n];
+                new_edges[i].Prev = new_edges[(i + n - 1) % n];
+                if (m_mesh.Halfedges.Contains(new_edges[i].Name)) { return false; }
+            }
+
+            // add halfedges to mesh
+            for (int j = 0; j < n; j++)
+            {
+                array[j].Halfedge = array[j].Halfedge ?? new_edges[j];
+                m_mesh.Halfedges.Add(new_edges[j]);
+            }
+
+            // add face to mesh
+            Add(new_face);
+
+            return true;
+        }
+        // TODO: Remove(Face item, Boolean cleanup)
+
+        /// <summary>
         /// Reduce an n-gon mesh face to triangles.
         /// </summary>
         /// <param name="index">index of the mesh face to be triangulated</param>
