@@ -13,7 +13,7 @@ namespace Buckminster
         public Vertex(Point3f point)
         {
             Position = point;
-            Name = Guid.NewGuid().ToString("N").Substring(0, 8);
+            Name = Guid.NewGuid().ToString("N").Substring(0, 12);
         }
         public Vertex(Point3f point, Halfedge edge)
             : this(point)
