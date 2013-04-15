@@ -68,27 +68,20 @@ namespace Buckminster.Types.Collections
                 return false;
             }
             he.Vertex = new_vertex;
+            // TODO: what if the old vertex was point to this halfedge? (see MeshFaceList.Remove)
             return true;
         }
         /// <summary>
-        /// Searches for and pairs opposing halfedges
+        /// Searches through the mesh and pairs opposing halfedges
         /// </summary>
-        /// <param name="items">a list of halfedges</param>
-        /// <returns>the number of halfedges for which a pair was found</returns>
-        //public int MatchPairs(IEnumerable<Halfedge> items)
-        public int MatchPairs()
+        public void MatchPairs()
         {
-            int count = 0;
             foreach (Halfedge edge in this)
             {
                 String rname = edge.Prev.Vertex.Name + edge.Vertex.Name;
-                if (Contains(rname))
-                {
-                    edge.Pair = this[rname];
-                    count++;
-                }
+
+                edge.Pair = Contains(rname) ? this[rname] : null;
             }
-            return count;
         }
         public List<Halfedge> GetUnique()
         {
@@ -105,7 +98,12 @@ namespace Buckminster.Types.Collections
 
                 if (halfedge.Pair != null)
                 {
-                    marker.Add(this[halfedge.Pair.Name]);
+                    try
+                    {
+                        marker.Add(this[halfedge.Pair.Name]);
+                    }
+                    catch (KeyNotFoundException) { } // do nothing, halfedge is already unique to 'this' list
+
                 }
             }
             return unique;

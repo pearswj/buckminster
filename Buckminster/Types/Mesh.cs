@@ -188,6 +188,11 @@ namespace Buckminster
         #endregion
 
         #region geometry methods
+        /// <summary>
+        /// Offsets a mesh by moving each vertex by the specified distance along its normal vector.
+        /// </summary>
+        /// <param name="offset">Offset distance</param>
+        /// <returns>The offset mesh</returns>
         public Mesh Offset(float offset)
         {
             Point3f[] points = new Point3f[Vertices.Count];
@@ -197,61 +202,108 @@ namespace Buckminster
             }
             return new Mesh(points, ListFacesByVertexIndices());
         }
-        public Mesh Ribbon(float offset)
+        /// <summary>
+        /// Thickens each mesh edge in the plane of the mesh surface.
+        /// </summary>
+        /// <param name="offset">Distance to offset edges in plane of adjacent faces</param>
+        /// <param name="boundaries">If true, attempt to ribbon boundary edges</param>
+        /// <returns>The ribbon mesh</returns>
+        public Mesh Ribbon(float offset, Boolean boundaries)
         {
-            // TODO: handle open meshes
-
             Mesh ribbon = Duplicate();
-            //ribbon.Faces.Clear();
             var orig_faces = ribbon.Faces.ToArray();
 
-            List<List<Vertex>> all_new_vertices = new List<List<Vertex>>();
+            List<List<Halfedge>> incidentEdges = ribbon.Vertices.Select(v => v.Halfedges).ToList();
 
+            // create new "vertex" faces
+            List<List<Vertex>> all_new_vertices = new List<List<Vertex>>();
             for (int k = 0; k < Vertices.Count; k++)
             {
                 Vertex v = ribbon.Vertices[k];
                 List<Vertex> new_vertices = new List<Vertex>();
-                Halfedge edge = v.Halfedge;
-                do
-                {
-                    Vector3f normal = edge.Pair.Face.Normal;
-                    Halfedge edge2 = edge.Pair.Prev;
+                List<Halfedge> halfedges = incidentEdges[k];
+                Boolean boundary = halfedges[0].Next.Pair != halfedges[halfedges.Count - 1];
 
-                    Vector3f o1 = Vector3f.CrossProduct(edge.Vector, normal);
+                // if the edge loop around this vertex is open, close it with 'temporary edges'
+                if (boundaries && boundary)
+                {
+                    Halfedge a, b;
+                    a = halfedges[0].Next;
+                    b = halfedges[halfedges.Count - 1];
+                    if (a.Pair == null)
+                    {
+                        a.Pair = new Halfedge(a.Prev.Vertex);
+                        a.Pair.Pair = a;
+                    }
+                    if (b.Pair == null)
+                    {
+                        b.Pair = new Halfedge(b.Prev.Vertex);
+                        b.Pair.Pair = b;
+                    }
+                    a.Pair.Next = b.Pair;
+                    b.Pair.Prev = a.Pair;
+                    a.Pair.Prev = a.Pair.Prev ?? a; // temporary - to allow access to a.Pair's start/end vertices
+                    halfedges.Add(a.Pair);
+                }
+
+                foreach (Halfedge edge in halfedges)
+                {
+                    if (halfedges.Count < 2) { continue; }
+
+                    Vector3f normal = edge.Face != null ? edge.Face.Normal : Vertices[k].Normal;
+                    Halfedge edge2 = edge.Next;
+
+                    Vector3f o1 = Vector3f.CrossProduct(normal, edge.Vector);
                     Vector3f o2 = Vector3f.CrossProduct(normal, edge2.Vector);
                     o1.Unitize();
                     o2.Unitize();
                     o1 *= offset;
                     o2 *= offset;
 
-                    Line l1 = new Line(edge.Vertex.Position + o1, edge.Prev.Vertex.Position + o1);
-                    Line l2 = new Line(edge2.Vertex.Position + o2, edge2.Prev.Vertex.Position + o2);
+                    if (edge.Face == null)
+                    {
+                        // boundary condition: create two new vertices in the plane defined by the vertex normal
+                        Vertex v1 = new Vertex(v.Position + (edge.Vector * (1 / edge.Vector.Length) * -offset) + o1);
+                        Vertex v2 = new Vertex(v.Position + (edge2.Vector * (1 / edge2.Vector.Length) * offset) + o2);
+                        ribbon.Vertices.Add(v2);
+                        ribbon.Vertices.Add(v1);
+                        new_vertices.Add(v2);
+                        new_vertices.Add(v1);
+                        Halfedge c = new Halfedge(v2, edge2, edge, null);
+                        edge.Next = c;
+                        edge2.Prev = c;
+                    }
+                    else
+                    {
+                        // internal condition: offset each edge in the plane of the shared face and create a new vertex where they intersect eachother
+                        Line l1 = new Line(edge.Vertex.Position + o1, edge.Prev.Vertex.Position + o1);
+                        Line l2 = new Line(edge2.Vertex.Position + o2, edge2.Prev.Vertex.Position + o2);
 
-                    double a, b;
-                    Rhino.Geometry.Intersect.Intersection.LineLine(l1, l2, out a, out b);
-                    Point3d new_point = l1.PointAt(a);
-                    Vertex new_vertex = new Vertex(new Point3f((float)new_point.X, (float)new_point.Y, (float)new_point.Z));
-                    ribbon.Vertices.Add(new_vertex);
-                    new_vertices.Add(new_vertex);
-                    edge = edge2;
-                } while (edge != v.Halfedge);
+                        double a, b;
+                        Rhino.Geometry.Intersect.Intersection.LineLine(l1, l2, out a, out b);
+                        Point3d new_point = l1.PointAt(a);
+                        Vertex new_vertex = new Vertex(new Point3f((float)new_point.X, (float)new_point.Y, (float)new_point.Z));
+                        ribbon.Vertices.Add(new_vertex);
+                        new_vertices.Add(new_vertex);
+                    }
+                }
 
+                if ((!boundaries && boundary) == false) // only draw boundary node-faces in 'boundaries' mode
+                    ribbon.Faces.Add(new_vertices);
                 all_new_vertices.Add(new_vertices);
-                ribbon.Faces.Add(new_vertices);
             }
 
             // change edges to reference new vertices (and cull old vertices)
             for (int k = 0; k < Vertices.Count; k++)
             {
                 Vertex v = ribbon.Vertices[k];
+                if (all_new_vertices[k].Count < 1) { continue; }
                 int c = 0;
-                Halfedge edge = v.Halfedge;
-                do
+                foreach (Halfedge edge in incidentEdges[k])
                 {
-                    //edge.Pair.Prev.Vertex = all_new_vertices[k][c++];
-                    ribbon.Halfedges.SetVertex(edge.Pair.Prev, all_new_vertices[k][c++]);
-                    edge = edge.Pair.Prev;
-                } while (edge != v.Halfedge);
+                    if (!ribbon.Halfedges.SetVertex(edge, all_new_vertices[k][c++]))
+                        edge.Vertex = all_new_vertices[k][c];
+                }
             }
 
             ribbon.Vertices.RemoveRange(0, Vertices.Count); // cull old vertices
@@ -266,13 +318,16 @@ namespace Buckminster
 
             foreach (Halfedge halfedge in items)
             {
-                Vertex[] new_vertices = new Vertex[]{
+                if (halfedge.Pair != null)
+                {
+                    Vertex[] new_vertices = new Vertex[]{
                     halfedge.Vertex,
                     halfedge.Prev.Vertex,
                     halfedge.Pair.Vertex,
                     halfedge.Pair.Prev.Vertex
-                };
-                ribbon.Faces.Add(new_vertices);
+                    };
+                    ribbon.Faces.Add(new_vertices);
+                }
             }
 
             // remove original faces, leaving just the ribbon
@@ -287,6 +342,11 @@ namespace Buckminster
 
             return ribbon;
         }
+        /// <summary>
+        /// Gives thickness to mesh faces by offsetting the mesh (in both -ve and +ve directions) and connecting naked edges with new faces.
+        /// </summary>
+        /// <param name="distance">Distance to offset the mesh (thickness)</param>
+        /// <returns>The extruded mesh (always closed)</returns>
         public Mesh Extrude(float distance)
         {
             Mesh ext = Offset(0.5f * distance);

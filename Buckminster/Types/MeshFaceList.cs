@@ -26,6 +26,8 @@ namespace Buckminster.Types.Collections
         {
             Vertex[] array = vertices.ToArray();
 
+            if (array.Length < 3) { return false; }
+
             int n = array.Length;
             Halfedge[] new_edges = new Halfedge[n]; // temporary container for new halfedges
 

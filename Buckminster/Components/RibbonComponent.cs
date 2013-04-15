@@ -29,6 +29,7 @@ namespace Buckminster
         {
             pManager.AddParameter(new MeshParam(), "Mesh", "M", "Input mesh", GH_ParamAccess.item);
             pManager.AddNumberParameter("Offset", "O", "Distance to offset edges in plane of adjacent faces", GH_ParamAccess.item, 1.0);
+            pManager.AddBooleanParameter("Boundaries", "B", "Whether to ribbon boundary edges or not", GH_ParamAccess.item, false);
         }
 
         /// <summary>
@@ -52,7 +53,10 @@ namespace Buckminster
             double offset = double.NaN;
             if (!DA.GetData(1, ref offset)) { return; }
 
-            DA.SetData(0, mesh.Ribbon((float) offset));
+            Boolean edges = false;
+            if (!DA.GetData(2, ref edges)) { return; }
+
+            DA.SetData(0, mesh.Ribbon((float) offset, edges));
         }
 
         /// <summary>

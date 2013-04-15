@@ -47,6 +47,44 @@ namespace Buckminster
                 return new Vector3f((float)normal.X, (float)normal.Y, (float)normal.Z);
             }
         }
+        /// <summary>
+        /// Gets a list of edges which are incident this vertex (ordered anticlockwise around the vertex).
+        /// </summary>
+        public List<Halfedge> Halfedges
+        {
+            get
+            {
+                List<Halfedge> edges = new List<Halfedge>();
+                bool boundary = false;
+                Halfedge edge = Halfedge;
+                do
+                {
+                    edges.Add(edge);
+                    if (edge.Pair == null)
+                    {
+                        boundary = true; // boundary hit
+                        break;
+                    }
+                    edge = edge.Pair.Prev;
+                } while (edge != Halfedge);
+
+                if (boundary)
+                {
+                    List<Halfedge> redges = new List<Halfedge>();
+                    edge = Halfedge;
+                    while (edge.Next.Pair != null)
+                    {
+                        edge = edge.Next.Pair;
+                        redges.Add(edge);
+                    }
+                    if (redges.Count > 1) { redges.Reverse(); }
+                    redges.AddRange(edges);
+                    return redges;
+                }
+
+                return edges;
+            }
+        }
         #endregion
 
         #region methods
@@ -56,7 +94,6 @@ namespace Buckminster
         /// <returns>a list of incident faces, ordered counter-clockwise around the vertex</returns>
         public List<Face> GetVertexFaces()
         {
-            // TODO: add reverse sort (in case we hit a boundary)
             List<Face> adjacent = new List<Face>();
             bool boundary = false;
             Halfedge edge = Halfedge;
