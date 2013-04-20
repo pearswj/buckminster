@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 using Grasshopper.Kernel;
 using Rhino.Geometry;
+using Rhino.Geometry.Intersect;
 
 namespace Buckminster.Components
 {
@@ -24,7 +25,12 @@ namespace Buckminster.Components
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddSurfaceParameter("Surface", "S", "Input surface", GH_ParamAccess.item);
+            pManager.AddPointParameter("Point", "P", "Starting point (Optional: If none provided, a point in the middle of the parameter space will selected.)", GH_ParamAccess.item);
+            pManager[1].Optional = true;
             pManager.AddNumberParameter("Length", "L", "Length of mesh edges", GH_ParamAccess.item, 3.0);
+            pManager.AddNumberParameter("Rotation", "R", "Angle of rotation for grid (degrees)", GH_ParamAccess.item, 0.0);
+            pManager.AddIntegerParameter("Steps", "B", "Maximum number of steps to walk out from the starting point", GH_ParamAccess.item, 1000);
+            pManager.AddBooleanParameter("Extend", "E", "Extend the surface beyond its original boundaries", GH_ParamAccess.item, false);
         }
 
         /// <summary>
@@ -32,7 +38,7 @@ namespace Buckminster.Components
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddParameter(new MeshParam(), "Mesh", "M", "Quad mesh (Chebychev net)", GH_ParamAccess.item);
+            pManager.AddMeshParameter("Mesh", "M", "Quad mesh (Chebychev net)", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -44,152 +50,146 @@ namespace Buckminster.Components
             Surface S = null;
             if (!DA.GetData(0, ref S)) { return; }
 
+            Point3d P = Point3d.Unset;
+            if (!DA.GetData(1, ref P))
+            {
+                P = S.PointAt(S.Domain(0).Mid, S.Domain(1).Mid);
+            }
+
             double R = Rhino.RhinoMath.UnsetValue;
-            if (!DA.GetData(1, ref R)) { return; }
+            if (!DA.GetData(2, ref R)) { return; }
+
+            double A = Rhino.RhinoMath.UnsetValue;
+            if (!DA.GetData(3, ref A)) { return; }
+
+            int max = 0;
+            if (!DA.GetData(4, ref max)) { return; }
+
+            Boolean extend = false;
+            if (!DA.GetData(5, ref extend)) { return; }
 
             if (R <= 0) {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Mesh edge length must be a positive, non-zero number.");
                 return;
             }
 
-            // Starting point
-            Point3d c = S.PointAt(S.Domain(0).Mid, S.Domain(1).Mid);
-
-            // Two curves (isoparametric curves, in this case)
-            Curve x = S.IsoCurve(0, S.Domain(1).Mid);
-            Curve y = S.IsoCurve(1, S.Domain(0).Mid);
-
-            // Initial sphere (at starting point)
-            Sphere sph = new Sphere(c, R);
-            Surface srf = NurbsSurface.CreateFromSphere(sph);
-
-            // Intersect sphere with the two curves
-            Rhino.Geometry.Intersect.CurveIntersections cix =
-              Rhino.Geometry.Intersect.Intersection.CurveSurface(x, srf, 0.01, 0.01);
-            Rhino.Geometry.Intersect.CurveIntersections ciy =
-              Rhino.Geometry.Intersect.Intersection.CurveSurface(y, srf, 0.01, 0.01);
-
-            Point3d[] four = new Point3d[4];
-            if (cix.Count != 2 && ciy.Count != 2) { return; }
-            for (int i = 0; i < 2; i++)
+            // Extend surface beyond boundaries to get a better coverage from the net
+            if (extend)
             {
-                if (cix[i].IsPoint && ciy[i].IsPoint)
-                {
-                    four[2 * i] = cix[i].PointA;
-                    four[2 * i + 1] = ciy[i].PointA;
-                }
-                else
-                {
-                    return;
-                }
+                S = S.Extend(IsoStatus.North, R, true);
+                S = S.Extend(IsoStatus.East, R, true);
+                S = S.Extend(IsoStatus.South, R, true);
+                S = S.Extend(IsoStatus.West, R, true);
             }
 
 
+            // starting point
+            double u0, v0;
+            S.ClosestPoint(P, out u0, out v0);
+            // get two (four) orthogonal directions (in plane of surface at starting point)
+            Plane plane = new Plane(S.PointAt(u0, v0), S.NormalAt(u0, v0));
+            plane.Rotate(Rhino.RhinoMath.ToRadians(A), S.NormalAt(u0, v0));
+            Vector3d[] dir = new Vector3d[]{
+                plane.XAxis * R,
+                plane.YAxis * R,
+                plane.XAxis * -R,
+                plane.YAxis * -R
+                };
 
 
+            // for each direction, walk out (and store list of points)
+            double u, v;
             List<Point3d>[] axis = new List<Point3d>[4];
-            Curve[] xy = new Curve[] { x, y };
             for (int i = 0; i < 4; i++)
             {
+                // set u and v to starting point
+                u = u0;
+                v = v0;
                 List<Point3d> pts = new List<Point3d>();
-                //
-                Point3d pt = four[i]; // set marker at initial point
-                pts.Add(c); // add center point
-                Boolean exit = false;
-                for (int j = 0; j < 5000; j++) // using a hard limit to prevent infinite looping if something goes wrong
+                for (int j = 0; j < max + 1; j++)
                 {
+                    // get point and normal for uv
+                    Point3d pt = S.PointAt(u, v);
+                    Vector3d n = S.NormalAt(u, v);
+                    n *= R;
+                    // add point to list
                     pts.Add(pt);
-                    Surface sphr = NurbsSurface.CreateFromSphere(new Sphere(pt, R));
-                    Rhino.Geometry.Intersect.CurveIntersections isct =
-                      Rhino.Geometry.Intersect.Intersection.CurveSurface(xy[i % 2], sphr, 0.01, 0.01);
-                    if (isct.Count > 1)
-                        pt = isct[(i - (i % 2)) / 2].PointA; // select the correct intersection point (depending on the relative direction of the curve)
+                    // create forward facing arc and find intersection point with surface (as uv)
+                    Arc arc = new Arc(pt + n, pt + dir[i], pt - n);
+                    CurveIntersections isct =
+                      Intersection.CurveSurface(arc.ToNurbsCurve(), S, 0.01, 0.01);
+                    if (isct.Count > 0)
+                        isct[0].SurfacePointParameter(out u, out v);
                     else
-                    {
-                        exit = true;
                         break;
-                    }
+                    // adjust direction vector (new position - old position)
+                    dir[i] = S.PointAt(u, v) - pt;
                 }
-                if (exit == false) // fail fast if the hard limit was hit and alert user
-                {
-                    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Mesh resolution too high; Try increasing the edge length.");
-                    return;
-                }
-                //
                 axis[i] = pts;
             }
 
-            // for each quadrant, build up a matrix of points which can be used to construct a mesh
-            List<Point3d> quadrants = new List<Point3d>();
-            Rhino.Geometry.Mesh mesh = new Rhino.Geometry.Mesh();
+
+            // now that we have the axes, start to build up the mesh quads in between
+            Rhino.Geometry.Mesh mesh = new Rhino.Geometry.Mesh(); // target mesh
             for (int k = 0; k < 4; k++)
             {
-
-                List<List<Point3d>> quart = new List<List<Point3d>>();
-                quart.Add(axis[(k + 1) % 4]);
-                for (int i = 1; i < axis[k].Count; i++)
+                Rhino.Geometry.Mesh qmesh = new Rhino.Geometry.Mesh(); // local mesh for quadrant
+                Point3d[,] quad = new Point3d[axis[k].Count, axis[(k + 1) % 4].Count]; // 2d array of points
+                int[,] qindex = new int[axis[k].Count, axis[(k + 1) % 4].Count]; // 2d array of points' indices in local mesh
+                int count = 0;
+                for (int i = 0; i < quad.GetLength(1); i++)
                 {
-                    List<Point3d> pts = new List<Point3d>();
-                    Point3d point = axis[k][i];
-                    pts.Add(point);
-                    for (int j = 1; j < quart[i - 1].Count; j++)
+                    // add axis vertex to mesh and store point and index in corresponding 2d arrays
+                    quad[0, i] = axis[(k + 1) % 4][i];
+                    qmesh.Vertices.Add(axis[(k + 1) % 4][i]);
+                    qindex[0, i] = count++;
+                }
+
+                for (int i = 1; i < quad.GetLength(0); i++)
+                {
+                    // add axis vertex
+                    quad[i, 0] = axis[k][i];
+                    qmesh.Vertices.Add(axis[k][i]);
+                    qindex[i, 0] = count++;
+                    // for each column attempt to locate a new vertex in the grid
+                    for (int j = 1; j < quad.GetLength(1); j++)
                     {
+                        if (quad[i - 1, j] == null || quad[i, j - 1] == null) { break; } // quit if neighbouring vertices don't exist
+                        // construct a sphere at each neighbouring vertex ([i,j-1] and [i-1,j]) and intersect
+                        Sphere sph1 = new Sphere(quad[i, j - 1], R);
+                        Sphere sph2 = new Sphere(quad[i - 1, j], R);
                         Circle cir;
-                        Rhino.Geometry.Intersect.Intersection.SphereSphere(new Sphere(point, R), new Sphere(quart[i - 1][j], R), out cir);
-                        if (cir.IsValid)
+                        if (Intersection.SphereSphere(sph1, sph2, out cir) == SphereSphereIntersection.Circle)
                         {
-                            Rhino.Geometry.Intersect.CurveIntersections cin =
-                              Rhino.Geometry.Intersect.Intersection.CurveSurface(NurbsCurve.CreateFromCircle(cir), S, 0.01, 0.01);
-                            if (cin.Count > 1)
+                            // intersect circle with surface
+                            CurveIntersections cin =
+                              Intersection.CurveSurface(NurbsCurve.CreateFromCircle(cir), S, 0.01, 0.01);
+                            // attempt to find the new vertex (i.e not [i-1,j-1])
+                            foreach(IntersectionEvent ie in cin)
                             {
-                                if ((cin[0].PointA - quart[i - 1][j - 1]).Length < 0.01 * R) // compare with a tolerance, rather than exact comparison
-                                    point = cin[1].PointA;
-                                else
-                                    point = cin[0].PointA;
-                                pts.Add(point);
-                                quadrants.Add(point);
+                                if ((ie.PointA - quad[i - 1, j - 1]).Length > 0.2 * R) // compare with a tolerance, rather than exact comparison
+                                {
+                                    Point3d point = ie.PointA;
+                                    quad[i, j] = point;
+                                    qmesh.Vertices.Add(point);
+                                    qindex[i, j] = count++;
+                                    // create quad-face
+                                    qmesh.Faces.AddFace(qindex[i, j], qindex[i - 1, j], qindex[i - 1, j - 1], qindex[i, j - 1]);
+                                    break;
+                                }
                             }
                         }
                     }
-                    quart.Add(pts);
                 }
-                // use QUART to mesh this quadrant (join later)
-                Rhino.Geometry.Mesh qmesh = new Rhino.Geometry.Mesh();
-                int[][] vindex = new int[quart.Count][];
-                int count = 0;
-                for (int i = 0; i < quart.Count; i++)
-                {
-                    vindex[i] = new int[quart[i].Count];
-                    for (int j = 0; j < quart[i].Count; j++)
-                    {
-                        qmesh.Vertices.Add(quart[i][j]);
-                        vindex[i][j] = count;
-                        if (i > 0 && j > 0)
-                            qmesh.Faces.AddFace(
-                              vindex[i][j],
-                              vindex[i - 1][j],
-                              vindex[i - 1][j - 1],
-                              vindex[i][j - 1]);
-                        count++;
-                    }
-                }
+                // add local mesh to target
                 mesh.Append(qmesh);
             }
 
-            // mesh housekeeping
+            // weld mesh to remove duplicate vertices along axes
             mesh.Weld(Math.PI);
             mesh.Compact();
             mesh.Normals.ComputeNormals();
 
-            /*
-            // flatten axis pts
-            List<Point3d> a = new List<Point3d>();
-            for (int i = 0; i < 4; i++)
-            {
-                a.AddRange(axis[i]);
-            }
-            a.AddRange(quadrants);
-            */
 
             DA.SetData(0, mesh);
         }
