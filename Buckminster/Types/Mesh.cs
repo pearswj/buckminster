@@ -208,7 +208,7 @@ namespace Buckminster
         /// <param name="offset">Distance to offset edges in plane of adjacent faces</param>
         /// <param name="boundaries">If true, attempt to ribbon boundary edges</param>
         /// <returns>The ribbon mesh</returns>
-        public Mesh Ribbon(float offset, Boolean boundaries)
+        public Mesh Ribbon(float offset, Boolean boundaries, float smooth)
         {
             Mesh ribbon = Duplicate();
             var orig_faces = ribbon.Faces.ToArray();
@@ -320,13 +320,44 @@ namespace Buckminster
             {
                 if (halfedge.Pair != null)
                 {
-                    Vertex[] new_vertices = new Vertex[]{
-                    halfedge.Vertex,
-                    halfedge.Prev.Vertex,
-                    halfedge.Pair.Vertex,
-                    halfedge.Pair.Prev.Vertex
-                    };
-                    ribbon.Faces.Add(new_vertices);
+                    // insert extra vertices close to the new 'vertex' vertices to preserve shape when subdividing
+                    if (smooth > 0.0)
+                    {
+                        if (smooth > 0.5) { smooth = 0.5f; }
+                        Vertex[] new_vertices = new Vertex[]{
+                            new Vertex(halfedge.Vertex.Position + (-smooth * halfedge.Vector)),
+                            new Vertex(halfedge.Prev.Vertex.Position + (smooth * halfedge.Vector)),
+                            new Vertex(halfedge.Pair.Vertex.Position + (-smooth * halfedge.Pair.Vector)),
+                            new Vertex(halfedge.Pair.Prev.Vertex.Position + (smooth * halfedge.Pair.Vector))
+                        };
+                        ribbon.Vertices.AddRange(new_vertices);
+                        Vertex[] new_vertices1 = new Vertex[]{
+                            halfedge.Vertex,
+                            new_vertices[0],
+                            new_vertices[3],
+                            halfedge.Pair.Prev.Vertex
+                        };
+                        Vertex[] new_vertices2 = new Vertex[]{
+                            new_vertices[1],
+                            halfedge.Prev.Vertex,
+                            halfedge.Pair.Vertex,
+                            new_vertices[2]
+                        };
+                        ribbon.Faces.Add(new_vertices);
+                        ribbon.Faces.Add(new_vertices1);
+                        ribbon.Faces.Add(new_vertices2);
+                    }
+                    else
+                    {
+                        Vertex[] new_vertices = new Vertex[]{
+                            halfedge.Vertex,
+                            halfedge.Prev.Vertex,
+                            halfedge.Pair.Vertex,
+                            halfedge.Pair.Prev.Vertex
+                            };
+
+                        ribbon.Faces.Add(new_vertices);
+                    }
                 }
             }
 
