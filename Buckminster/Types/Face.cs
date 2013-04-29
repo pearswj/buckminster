@@ -39,6 +39,9 @@ namespace Buckminster
                 return avg;
             }
         }
+        /// <summary>
+        /// Get the face normal (unit vector).
+        /// </summary>
         public Vector3f Normal
         {
             get

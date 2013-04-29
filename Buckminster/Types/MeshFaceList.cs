@@ -61,7 +61,11 @@ namespace Buckminster.Types.Collections
 
             return true;
         }
-        public void Remove(Face item)
+        /// <summary>
+        /// Remove a face from the mesh, also removing its halfedges. (Replaces IList.Remove(T item).)
+        /// </summary>
+        /// <param name="item">a reference to the face which is to be removed</param>
+        new public void Remove(Face item)
         {
             List<Halfedge> edges = new List<Halfedge>();
             Halfedge edge = item.Halfedge;
