@@ -33,7 +33,8 @@ namespace Buckminster
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddLineParameter("Output Truss", "T", "The space truss (as a list of lines)", GH_ParamAccess.list);
+            //pManager.AddLineParameter("Output Truss", "T", "The space truss (as a list of lines)", GH_ParamAccess.list);
+            pManager.AddParameter(new MeshParam(), "Truss Mesh", "T", "A combination of the two input meshes with naked edges connecting corresponding vertices", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -57,18 +58,30 @@ namespace Buckminster
                 return;
             }
 
-            List<Line> bars = new List<Line>();
-            bars.AddRange(mesh.ToLines());
-            bars.AddRange(dual.ToLines());
+            Mesh target = mesh.Duplicate();
+            target.Append(dual);
+
+            int n = mesh.Vertices.Count;
+
             for (int i = 0; i < mesh.Faces.Count; i++)
             {
-                foreach (Vertex fv in mesh.Faces[i].GetVertices())
+                foreach (Vertex fv in target.Faces[i].GetVertices())
                 {
-                    bars.Add(new Line(dual.Vertices[i].Position, fv.Position));
+                    //target.Halfedges.Add(fv, fv.Halfedge.Next, target.Vertices[n + i].Halfedge, null);
+                    // Adds a halfedge pair between the vertex on the dual and each corresponding face-vertex
+                    // The pair link to each other, forwards and backwards.
+                    Halfedge e1 = new Halfedge(fv);
+                    Halfedge e2 = new Halfedge(target.Vertices[n + i], e1, e1, null, e1);
+                    e1.Next = e2;
+                    e1.Prev = e2;
+                    e1.Pair = e2;
+                    target.Halfedges.Add(e1);
+                    target.Halfedges.Add(e2);
                 }
             }
 
-            DA.SetDataList(0, bars);
+
+            DA.SetData(0, target);
         }
 
         /// <summary>

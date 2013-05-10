@@ -147,7 +147,6 @@ namespace Buckminster
             List<Point3f> vertexPoints = new List<Point3f>(Faces.Count);
             foreach (Face f in Faces)
             {
-                //dual.Vertices.Add(new Vertex(f.Centroid()));
                 vertexPoints.Add(f.Centroid);
             }
 
@@ -516,6 +515,24 @@ namespace Buckminster
         public List<Line> ToLines()
         {
             return Halfedges.GetUnique().Select(h => new Rhino.Geometry.Line(h.Prev.Vertex.Position, h.Vertex.Position)).ToList();
+        }
+        /// <summary>
+        /// Appends a copy of another mesh to this one.
+        /// </summary>
+        /// <param name="other">Mesh to append to this one.</param>
+        public void Append(Mesh other)
+        {
+            Mesh dup = other.Duplicate();
+
+            Vertices.AddRange(dup.Vertices);
+            foreach (Halfedge edge in dup.Halfedges)
+            {
+                Halfedges.Add(edge);
+            }
+            foreach (Face face in dup.Faces)
+            {
+                Faces.Add(face);
+            }
         }
         #endregion
     }
