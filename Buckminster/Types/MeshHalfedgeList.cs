@@ -83,6 +83,11 @@ namespace Buckminster.Types.Collections
                 edge.Pair = Contains(rname) ? this[rname] : null;
             }
         }
+        /// <summary>
+        /// Returns a list of unique halfedges.
+        /// Halfedge pairs are represented by the halfedge with the lowest index in the mesh.
+        /// </summary>
+        /// <returns>A list of unique edges</returns>
         public List<Halfedge> GetUnique()
         {
             MeshHalfedgeList marker = new MeshHalfedgeList();
