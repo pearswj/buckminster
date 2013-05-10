@@ -16,7 +16,7 @@ namespace Buckminster
         {
             get
             {
-                return "Provides components for the generation of space trusses from NURBS surfaces using mesh operators and surface modelling techniques.";
+                return "Provides components for the generation of structural frames from surfaces using mesh operators and surface modelling techniques.";
             }
         }
         public override string AuthorName
@@ -37,7 +37,7 @@ namespace Buckminster
         {
             get
             {
-                return "0.0.1";
+                return "0.1.0";
             }
         }
         public override System.Guid Id
