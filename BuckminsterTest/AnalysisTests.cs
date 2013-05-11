@@ -57,7 +57,7 @@ namespace BuckminsterTest
             Vector3D[] supports = new Vector3D[supports_temp.GetLength(0)];
             for (int i = 0; i < supports.Length; i++)
             {
-                supports[i] = new Vector3D(supports_temp[i, 0], supports_temp[i, 1], 0.0);
+                supports[i] = new Vector3D(supports_temp[i, 0], supports_temp[i, 1], 1.0);
             }
 
             // Call the method
@@ -83,7 +83,10 @@ namespace BuckminsterTest
             
             for (int i = 0; i < n * 2; i++)
             {
-                Assert.AreEqual(target_displacements[i], results[i], 1E-06);
+                if (results[i] != double.NaN)
+                    Assert.AreEqual(target_displacements[i], results[i], 1E-06);
+                else
+                    Assert.Fail();
             }
         }
 
@@ -164,7 +167,7 @@ namespace BuckminsterTest
             Vector3D[] supports = new Vector3D[supports_temp.GetLength(0)];
             for (int i = 0; i < supports.Length; i++)
             {
-                supports[i] = new Vector3D(supports_temp[i, 0], supports_temp[i, 1], 0.0);
+                supports[i] = new Vector3D(supports_temp[i, 0], supports_temp[i, 1], 1.0);
             }
 
             // Call the method
@@ -200,7 +203,10 @@ namespace BuckminsterTest
 
             for (int i = 0; i < n * 2; i++)
             {
-                Assert.AreEqual(target_displacements[i], results[i], 1E-06);
+                if (results[i] != double.NaN)
+                    Assert.AreEqual(target_displacements[i], results[i], 1E-06);
+                else
+                    Assert.Fail();
             }
         }
     }
