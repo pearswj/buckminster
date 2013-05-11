@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-//using Rhino.Geometry;
-using System.Windows.Media.Media3D;
-using Vector3d = System.Windows.Media.Media3D.Vector3D;
-using Point3d = System.Windows.Media.Media3D.Point3D;
+using Rhino.Geometry;
+//using System.Windows.Media.Media3D;
+//using Vector3d = System.Windows.Media.Media3D.Vector3D;
+//using Point3d = System.Windows.Media.Media3D.Point3D;
 using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace Buckminster
