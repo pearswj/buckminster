@@ -67,12 +67,12 @@ namespace Buckminster.Components
                 //bars.Add(vlookup[unique[i].Vertex.Name], new GH_Path(i));       // start
                 //bars.Add(vlookup[unique[i].Prev.Vertex.Name], new GH_Path(i));  // end
                 bars_s[i] = vlookup[unique[i].Vertex.Name];
-                bars_s[i] = vlookup[unique[i].Prev.Vertex.Name];
+                bars_e[i] = vlookup[unique[i].Prev.Vertex.Name];
             }
 
             //DA.SetDataTree(1, bars);
             DA.SetDataList(1, bars_s);
-            DA.SetDataList(1, bars_e);
+            DA.SetDataList(2, bars_e);
         }
 
         /// <summary>
