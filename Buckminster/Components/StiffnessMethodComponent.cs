@@ -40,8 +40,9 @@ namespace Buckminster.Components
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("Output", "out", "Output for debugging", GH_ParamAccess.list);
+            //pManager.AddTextParameter("Output", "out", "Output for debugging", GH_ParamAccess.list);
             pManager.AddVectorParameter("Displacements", "displacements", "Displacements of nodes under load", GH_ParamAccess.list);
+            pManager.AddNumberParameter("Forces", "forces", "Axial bar forces", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -53,8 +54,6 @@ namespace Buckminster.Components
             List<Point3d> nodes = new List<Point3d>();
             if (!DA.GetDataList<Point3d>(0, nodes)) { return; }
 
-            //GH_Structure<GH_Integer> bars;
-            //if (!DA.GetDataTree<GH_Integer>(1, out bars)) { return; }
             List<int> bars_s = new List<int>();
             if (!DA.GetDataList<int>(1, bars_s)) { return; }
 
@@ -70,34 +69,20 @@ namespace Buckminster.Components
             List<Double> properties = new List<Double>();
             if (!DA.GetDataList<Double>(5, properties)) { return; }
             
-            List<string> output = new List<string>();
-
-            /*if ((bars.DataCount / bars.PathCount) != 2)
-            {
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "All branches should have two items of data.");
-                return;
-            }
-
-            double[,] stiffness = new double[nodes.Count, nodes.Count];
-
-            for (int i = 0; i < bars.PathCount; i++)
-            {
-                System.Collections.IList bar = bars.get_Branch(new GH_Path(i)); // [start, end]
-                
-                //var barVector = nodes[start] - nodes[end]; // x-length, y-length, etc.
-                output.Add(string.Format("{0} {1}", bar[0], bar[1]));
-            }*/
+            //List<string> output = new List<string>();
 
             Vector3d[] displacements;
-            if (!Buckminster.Analysis.StiffnessMethod(nodes, bars_s, bars_e, properties, loads, supports, out displacements))
+            double[] forces;
+            if (!Buckminster.Analysis.StiffnessMethod(nodes, bars_s, bars_e, properties, loads, supports, out displacements, out forces))
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Analysis failed - check the lengths of your input lists.");
                 return;
             }
 
-            DA.SetDataList(1, displacements);
+            DA.SetDataList(0, displacements);
+            DA.SetDataList(1, forces);
 
-            DA.SetDataList(0, output);
+            //DA.SetDataList(0, output);
         }
 
         /// <summary>

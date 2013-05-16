@@ -63,7 +63,10 @@ namespace BuckminsterTest
             // Call the method
 
             Vector3D[] displacements;
-            Buckminster.Analysis.StiffnessMethod(nodes, bars_s, bars_e, bars_mat, loads, supports, out displacements);
+            double[] forces;
+            Buckminster.Analysis.StiffnessMethod(nodes, bars_s, bars_e, bars_mat, loads, supports, out displacements, out forces);
+
+            // compare displacements
 
             var target_displacements = new double[] {
                 0.0, 0.0,
@@ -78,8 +81,6 @@ namespace BuckminsterTest
                 results[i * 2] = displacements[i].X;
                 results[i * 2 + 1] = displacements[i].Y;
             }
-
-            // compare results (to a tolerance)
             
             for (int i = 0; i < n * 2; i++)
             {
@@ -88,6 +89,26 @@ namespace BuckminsterTest
                 else
                     Assert.Fail();
             }
+
+            // compare forces
+
+            var target_forces = new double[] {
+                10000.005,
+                -10000.006,
+                -10000.003,
+                10000.005,
+                14142.141,
+                -14142.139
+            };
+
+            for (int i = 0; i < forces.Length; i++)
+            {
+                if (forces[i] != double.NaN)
+                    Assert.AreEqual(target_forces[i], forces[i], 0.01);
+                else
+                    Assert.Fail();
+            }
+
         }
 
         [TestMethod]
@@ -173,7 +194,10 @@ namespace BuckminsterTest
             // Call the method
 
             Vector3D[] displacements;
-            Buckminster.Analysis.StiffnessMethod(nodes, bars_s, bars_e, bars_mat, loads, supports, out displacements);
+            double[] forces;
+            Buckminster.Analysis.StiffnessMethod(nodes, bars_s, bars_e, bars_mat, loads, supports, out displacements, out forces);
+
+            // compare displacements
 
             var target_displacements = new double[] {
                 0.0, 0.0,
@@ -199,12 +223,48 @@ namespace BuckminsterTest
                 results[i * 2 + 1] = displacements[i].Y;
             }
 
-            // Compare results (to a tolerance)
-
             for (int i = 0; i < n * 2; i++)
             {
                 if (results[i] != double.NaN)
                     Assert.AreEqual(target_displacements[i], results[i], 1E-06);
+                else
+                    Assert.Fail();
+            }
+
+            // compare forces
+
+            var target_forces = new double[] {
+                500.00754,
+                1000.01086,
+                1500.0127,
+                1000.00934,
+                500.00412,
+                0.0,
+                0.0,
+                -500.0045,
+                -1000.00824,
+                -1500.0107,
+                -1000.0084,
+                -500.00497,
+                0.0,
+                500.00372,
+                500.00333,
+                -499.9995,
+                -500.00333,
+                -500.0045,
+                -500.0052,
+                -707.1125,
+                -707.1115,
+                -707.1091,
+                707.11035,
+                707.1115,
+                707.11346
+            };
+
+            for (int i = 0; i < forces.Length; i++)
+            {
+                if (forces[i] != double.NaN)
+                    Assert.AreEqual(target_forces[i], forces[i], 0.1);
                 else
                     Assert.Fail();
             }

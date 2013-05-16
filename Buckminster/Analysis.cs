@@ -21,7 +21,8 @@ namespace Buckminster
             IList<Vector3d> loads,
             IList<Vector3d> supports_t, // translational fixities
             //IList<Vector3d> supports_r, // rotational fixities (not yet implemented)
-            out Vector3d[] deflections
+            out Vector3d[] deflections,
+            out double[] forces
             )
         {
             // TODO: check that loads array isn't being altered
@@ -35,6 +36,7 @@ namespace Buckminster
                 num_bars != bars_mat.Count)
             {
                 deflections = new Vector3d[num_nodes];
+                forces = new double[num_bars];
                 return false;
             }
 
@@ -45,9 +47,12 @@ namespace Buckminster
 
             // build stiffness matrix
 
+            var vectors = Enumerable.Range(0, num_bars).Select(i => nodes[bars_e[i]] - nodes[bars_s[i]]).ToArray();
+
             for (int i = 0; i < num_bars; i++)
             {
-                var vector = nodes[bars_e[i]] - nodes[bars_s[i]];
+                //var vector = nodes[bars_e[i]] - nodes[bars_s[i]];
+                var vector = vectors[i];
                 var EA_over_Lcubed = YoungsModulus * bars_mat[i] / Math.Pow(vector.Length, 3); // bar_mat is csa
                 var xx_stiffness = EA_over_Lcubed * Math.Pow(vector.X, 2);
                 var yy_stiffness = EA_over_Lcubed * Math.Pow(vector.Y, 2);
@@ -182,6 +187,15 @@ namespace Buckminster
                     deflections_vector[3 * i + 1], // y
                     deflections_vector[3 * i + 2]  // z
                     );
+            }
+
+            forces = new double[num_bars];
+            for (int i = 0; i < num_bars; i++)
+            {
+                forces[i] = YoungsModulus * bars_mat[i] / (Math.Pow(vectors[i].X, 2) + Math.Pow(vectors[i].Y, 2) + Math.Pow(vectors[i].Z, 2));
+                forces[i] *= vectors[i].X * (deflections[bars_e[i]].X - deflections[bars_s[i]].X) +
+                    vectors[i].Y * (deflections[bars_e[i]].Y - deflections[bars_s[i]].Y) +
+                    vectors[i].Z * (deflections[bars_e[i]].Z - deflections[bars_s[i]].Z);
             }
 
             return true;
