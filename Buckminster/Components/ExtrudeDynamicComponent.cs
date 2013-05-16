@@ -6,7 +6,7 @@ using Rhino.Geometry;
 
 namespace Buckminster
 {
-    public class ExtrudeComponent : GH_Component
+    public class ExtrudeDynamicComponent : GH_Component
     {
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
@@ -15,9 +15,9 @@ namespace Buckminster
         /// Subcategory the panel. If you use non-existing tab or panel names, 
         /// new tabs/panels will automatically be created.
         /// </summary>
-        public ExtrudeComponent()
-            : base("Buckminster's Extrude Component", "Extrude",
-                "Gives thickness to mesh faces.",
+        public ExtrudeDynamicComponent()
+            : base("Buckminster's Dynamic Extrude Component", "Extrude",
+                "Gives thickness to mesh faces. Allows individual offsets to be specified for each vertex.",
                 "Buckminster", "Modify")
         {
         }
@@ -28,7 +28,7 @@ namespace Buckminster
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddParameter(new MeshParam(), "Mesh", "M", "Input mesh", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Distance", "D", "Distance to extrude faces", GH_ParamAccess.item, 1.0);
+            pManager.AddNumberParameter("Distance", "D", "Distance to extrude faces", GH_ParamAccess.list);
             pManager.AddBooleanParameter("Symmetric", "S", "If true, distance is halved and projected either side of the parent mesh.", GH_ParamAccess.item, true);
         }
 
@@ -50,11 +50,17 @@ namespace Buckminster
             Mesh mesh = null;
             if (!DA.GetData(0, ref mesh)) { return; }
 
-            double distance = double.NaN;
-            if (!DA.GetData(1, ref distance)) { return; }
+            List<double> distance = new List<double>();
+            if (!DA.GetDataList<double>(1, distance)) { return; }
 
             bool sym = true;
             if (!DA.GetData(2, ref sym)) { return; }
+
+            if (distance.Count != mesh.Vertices.Count)
+            {
+                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Length of offset list does not match mesh vertex list.");
+                return;
+            }
 
             DA.SetData(0, mesh.Extrude(distance, sym));
         }
@@ -80,7 +86,7 @@ namespace Buckminster
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("{e50f00c0-2ff3-44cc-9fca-2e68cdddcab8}"); }
+            get { return new Guid("{5af05fb3-2f56-430e-9779-7eba705c18de}"); }
         }
     }
 }

@@ -192,13 +192,23 @@ namespace Buckminster
         /// </summary>
         /// <param name="offset">Offset distance</param>
         /// <returns>The offset mesh</returns>
-        public Mesh Offset(float offset)
+        public Mesh Offset(double offset)
+        {
+            var offsetList = Enumerable.Range(0, Vertices.Count).Select(i => offset).ToList();
+            return Offset(offsetList);
+        }
+        public Mesh Offset(List<double> offset)
         {
             Point3f[] points = new Point3f[Vertices.Count];
-            for (int i = 0; i < Vertices.Count; i++)
+            for (int i = 0; i < Vertices.Count && i < offset.Count; i++)
             {
-                points[i] = Vertices[i].Position + (Vertices[i].Normal * offset);
+                points[i] = Vertices[i].Position + (Vertices[i].Normal * (float)offset[i]);
             }
+            /*var points = new List<Point3f>();
+            foreach (var item in Vertices.Zip(offset, (v, o) => new { v, o }))
+            {
+                points.Add(item.v.Position + (item.v.Normal * (float)o);
+            }*/
             return new Mesh(points, ListFacesByVertexIndices());
         }
         /// <summary>
@@ -373,14 +383,29 @@ namespace Buckminster
             return ribbon;
         }
         /// <summary>
-        /// Gives thickness to mesh faces by offsetting the mesh (in both -ve and +ve directions) and connecting naked edges with new faces.
+        /// Gives thickness to mesh faces by offsetting the mesh and connecting naked edges with new faces.
         /// </summary>
         /// <param name="distance">Distance to offset the mesh (thickness)</param>
+        /// <param name="symmetric">Whether to extrude in both (-ve and +ve) directions</param>
         /// <returns>The extruded mesh (always closed)</returns>
-        public Mesh Extrude(float distance)
+        public Mesh Extrude(double distance, bool symmetric)
         {
-            Mesh ext = Offset(0.5f * distance);
-            Mesh top = Offset(-0.5f * distance);
+            var offsetList = Enumerable.Range(0, Vertices.Count).Select(i => distance).ToList();
+            return Extrude(offsetList, symmetric);
+        }
+        public Mesh Extrude(List<double> distance, bool symmetric)
+        {
+            Mesh ext, top;
+            if (symmetric)
+            {
+                ext = Offset(distance.Select(d => 0.5 * d).ToList());
+                top = Offset(distance.Select(d => -0.5 * d).ToList());
+            }
+            else
+            {
+                ext = Duplicate();
+                top = Offset(distance);
+            }
 
             top.Halfedges.Flip();
 
