@@ -6,7 +6,7 @@ using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 
-namespace Buckminster
+namespace Buckminster.Types.Collections
 {
     /// <summary>
     /// 
