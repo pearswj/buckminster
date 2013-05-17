@@ -1,17 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-
-using Grasshopper.Kernel;
-using Grasshopper.Kernel.Types;
-using Rhino.Geometry;
 
 namespace Buckminster.Types.Collections
 {
     /// <summary>
-    /// 
+    /// A collection of mesh halfedges
     /// </summary>
-    public class MeshHalfedgeList : KeyedCollection<String, Halfedge>
+    public class MeshHalfedgeList : KeyedCollection<string, Halfedge>
     {
         private Mesh m_mesh;
         /// <summary>

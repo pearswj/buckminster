@@ -1,15 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
-
-using Grasshopper.Kernel;
-using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
-
 using Buckminster.Types.Collections;
 
-namespace Buckminster
+namespace Buckminster.Types
 {
     public class Mesh
     {
@@ -28,9 +23,9 @@ namespace Buckminster
             : this()
         {
             // Check that the mesh is oriented and manifold
-            bool isManifold, isOriented, hasBoundary;
-            isManifold = source.IsManifold(true, out isOriented, out hasBoundary);
-            if (!isManifold || !isOriented) { return; }
+            bool isOriented, hasBoundary;
+            var isManifold = source.IsManifold(true, out isOriented, out hasBoundary);
+            if (!isManifold || !isOriented) return;
 
             // Remove unused vertices
             source.Vertices.CullUnused();
@@ -241,13 +236,11 @@ namespace Buckminster
                     b = halfedges[halfedges.Count - 1];
                     if (a.Pair == null)
                     {
-                        a.Pair = new Halfedge(a.Prev.Vertex);
-                        a.Pair.Pair = a;
+                        a.Pair = new Halfedge(a.Prev.Vertex) {Pair = a};
                     }
                     if (b.Pair == null)
                     {
-                        b.Pair = new Halfedge(b.Prev.Vertex);
-                        b.Pair.Pair = b;
+                        b.Pair = new Halfedge(b.Prev.Vertex) {Pair = b};
                     }
                     a.Pair.Next = b.Pair;
                     b.Pair.Prev = a.Pair;

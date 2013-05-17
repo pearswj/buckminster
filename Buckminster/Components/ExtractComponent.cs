@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using Grasshopper;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Rhino.Geometry;
+using Buckminster.Types;
 
 namespace Buckminster.Components
 {
@@ -16,8 +14,8 @@ namespace Buckminster.Components
         /// </summary>
         public ExtractComponent()
             : base("Buckminster's Extract Component", "Extract",
-                "Extract geometrical and topological information from the mesh.",
-                "Buckminster", "Utils")
+                "Extract geometrical and topological information from the mesh for analysis.",
+                "Buckminster", "Analysis")
         {
         }
 

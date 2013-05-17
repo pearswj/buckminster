@@ -14,7 +14,7 @@ namespace Buckminster.Components
         public WriteRobotSTRComponent()
             : base("Simple write Robot STR", "RobotSTR",
                 "Write an STR file to be loaded into Robot.",
-                "Buckminster", "Dragos")
+                "Buckminster", "Analysis")
         {
         }
 

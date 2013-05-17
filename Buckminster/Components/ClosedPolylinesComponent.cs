@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 
 using Grasshopper.Kernel;
-using Rhino.Geometry;
+using Buckminster.Types;
 
-namespace Buckminster
+namespace Buckminster.Components
 {
     public class ClosedPolylinesComponent : GH_Component
     {

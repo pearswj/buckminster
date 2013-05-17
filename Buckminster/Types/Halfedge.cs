@@ -5,7 +5,7 @@ using System.Text;
 
 using Rhino.Geometry;
 
-namespace Buckminster
+namespace Buckminster.Types
 {
     public class Halfedge
     {

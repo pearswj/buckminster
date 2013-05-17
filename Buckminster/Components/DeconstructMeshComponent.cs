@@ -1,22 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+//using System.Linq;
 
 using Grasshopper.Kernel;
 using Rhino.Geometry;
-
-using Buckminster.Types;
 using Mesh = Buckminster.Types.Mesh;
 
 namespace Buckminster.Components
 {
-    public class VertexPointsComponent : GH_Component
+    public class DeconstructMeshComponent : GH_Component
     {
         /// <summary>
-        /// Initializes a new instance of the VertexPointsComponent class.
+        /// Initializes a new instance of the MyComponent1 class.
         /// </summary>
-        public VertexPointsComponent()
-            : base("Buckminster's Vertex Points", "Points",
-                "Extract the vertices from a mesh as points.",
+        public DeconstructMeshComponent()
+            : base("Buckminster's Deconstruct Mesh", "Parts",
+                "Deconstruct mesh into its component parts.",
                 "Buckminster", "Utils")
         {
         }
@@ -34,7 +33,10 @@ namespace Buckminster.Components
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddPointParameter("Vertices", "V", "Vertices as points", GH_ParamAccess.list);
+            pManager.AddPointParameter("Vertices", "V", "Mesh vertices", GH_ParamAccess.list);
+            pManager.AddColourParameter("Colours", "C", "Mesh vertex colours", GH_ParamAccess.list);
+            pManager.AddVectorParameter("Normals", "N", "Mesh vertex normals", GH_ParamAccess.list);
+            pManager.HideParameter(1);
         }
 
         /// <summary>
@@ -46,13 +48,20 @@ namespace Buckminster.Components
             Mesh mesh = null;
             if (!DA.GetData(0, ref mesh)) { return; }
 
-            List<Point3d> points = new List<Point3d>();
-            foreach (Vertex v in mesh.Vertices)
+            int n = mesh.Vertices.Count;
+            var points = new Point3d[n];
+            var normals = new Vector3d[n];
+            for (int i = 0; i < n; i++)
             {
-                points.Add(v.Position);
+                points[i] = mesh.Vertices[i].Position;
+                normals[i] = mesh.Vertices[i].Normal;
             }
 
             DA.SetDataList(0, points);
+            DA.SetDataList(2, normals);
+
+            //DA.SetDataList(0, mesh.Vertices.Select(v => v.Position));
+            //DA.SetDataList(1, mesh.Vertices.Select(v => v.Normal));
         }
 
         /// <summary>
@@ -64,7 +73,7 @@ namespace Buckminster.Components
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return Properties.Resources.PointsComponent;
+                return null;
             }
         }
 
@@ -73,7 +82,7 @@ namespace Buckminster.Components
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("{ddd7d06d-9ebd-45e5-9e36-7de114fd2871}"); }
+            get { return new Guid("{a89d2669-a60a-4957-b332-8c9468d7295f}"); }
         }
     }
 }

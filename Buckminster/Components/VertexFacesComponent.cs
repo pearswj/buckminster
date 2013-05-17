@@ -4,7 +4,10 @@ using System.Collections.Generic;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
-namespace Buckminster
+using Buckminster.Types;
+using Mesh = Buckminster.Types.Mesh;
+
+namespace Buckminster.Components
 {
     public class VertexFacesComponent : GH_Component
     {

@@ -61,6 +61,7 @@
   <ItemGroup>
     <Compile Include="Analysis.cs" />
     <Compile Include="Components\ExtrudeDynamicComponent.cs" />
+    <Compile Include="Components\DeconstructMeshComponent.cs" />
     <Compile Include="Components\OffsetDynamicComponent.cs" />
     <Compile Include="Components\ExtractComponent.cs" />
     <Compile Include="Components\ExtrudeComponent.cs" />
@@ -75,12 +76,13 @@
     <Compile Include="Components\ChebychevComponent.cs" />
     <Compile Include="Components\StiffnessMethodComponent.cs" />
     <Compile Include="Components\WriteRobotSTRComponent.cs" />
-    <Compile Include="Types\MeshFaceList.cs" />
-    <Compile Include="Types\MeshHalfedgeList.cs" />
+    <Compile Include="MeshGoo.cs" />
+    <Compile Include="MeshParam.cs" />
+    <Compile Include="Types\Collections\MeshFaceList.cs" />
+    <Compile Include="Types\Collections\MeshHalfedgeList.cs" />
+    <Compile Include="Types\Collections\MeshVertexList.cs" />
     <Compile Include="Types\Face.cs" />
     <Compile Include="Types\Halfedge.cs" />
-    <Compile Include="Types\MeshGoo.cs" />
-    <Compile Include="Types\MeshParam.cs" />
     <Compile Include="Components\DebugComponent.cs" />
     <Compile Include="Components\OffsetComponent.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
@@ -89,7 +91,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="Types\Vertex.cs" />
-    <Compile Include="Types\MeshVertexList.cs" />
     <Compile Include="BuckminsterInfo.cs" />
     <Compile Include="Types\Mesh.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -103,6 +104,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="HalfedgeClassDiagram.cd" />
     <None Include="packages.config" />
     <None Include="Resources\gh_icons-02.png" />
   </ItemGroup>

@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-
+using System;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 
 namespace Buckminster

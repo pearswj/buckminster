@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using Grasshopper.Kernel;
-using Rhino.Geometry;
+using Buckminster.Types;
 
-namespace Buckminster
+namespace Buckminster.Components
 {
     public class DualComponent : GH_Component
     {

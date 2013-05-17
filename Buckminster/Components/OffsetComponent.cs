@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using Grasshopper.Kernel;
-using Rhino.Geometry;
+using Buckminster.Types;
 
-namespace Buckminster
+namespace Buckminster.Components
 {
     public class OffsetComponent : GH_Component
     {
@@ -48,7 +47,7 @@ namespace Buckminster
             double distance = double.NaN;
             if (!DA.GetData<double>(1, ref distance)) { return; }
 
-            DA.SetData(0, mesh.Offset((float)distance));
+            DA.SetData(0, mesh.Offset(distance));
         }
 
         /// <summary>

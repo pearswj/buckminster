@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
+using Mesh = Buckminster.Types.Mesh;
 
 namespace Buckminster
 {
