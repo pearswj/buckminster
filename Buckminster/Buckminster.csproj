@@ -60,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Analysis.cs" />
+    <Compile Include="Components\AmboComponent.cs" />
     <Compile Include="Components\ExtrudeDynamicComponent.cs" />
     <Compile Include="Components\DeconstructMeshComponent.cs" />
     <Compile Include="Components\OffsetDynamicComponent.cs" />

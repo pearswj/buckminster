@@ -72,6 +72,17 @@ namespace Buckminster.Types
             } while (edge != Halfedge);
             return vertices;
         }
+        public List<Halfedge> GetHalfedges()
+        {
+            List<Halfedge> halfedges = new List<Halfedge>();
+            Halfedge edge = Halfedge;
+            do
+            {
+                halfedges.Add(edge); // add halfedge to list
+                edge = edge.Next; // move on to next halfedge
+            } while (edge != Halfedge);
+            return halfedges;
+        }
         
         /// <summary>
         /// Constructs a close polyline which follows the edges bordering the face

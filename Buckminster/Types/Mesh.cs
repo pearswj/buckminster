@@ -179,6 +179,43 @@ namespace Buckminster.Types
 
             return new Mesh(vertexPoints, faceIndices);
         }
+        /// <summary>
+        /// Conway's ambo operator
+        /// </summary>
+        /// <returns>the dual as a new mesh</returns>
+        public Mesh Ambo()
+        {
+            // Create points at midpoint of unique halfedges (edges to vertices) and create lookup table
+            List<Point3f> vertexPoints = new List<Point3f>(); // vertices as points
+            Dictionary<string, int> hlookup = new Dictionary<string, int>();
+            int count = 0;
+            foreach (var edge in Halfedges)
+            {
+                // if halfedge's pair is already in the table, give it the same index
+                if (edge.Pair != null && hlookup.ContainsKey(edge.Pair.Name))
+                    hlookup.Add(edge.Name, hlookup[edge.Pair.Name]);
+                else // otherwise create a new vertex and increment the index
+                {
+                    hlookup.Add(edge.Name, count++);
+                    vertexPoints.Add(edge.Midpoint);
+                }
+            }
+            var faceIndices = new List<IEnumerable<int>>(); // faces as vertex indices
+            // faces to faces
+            foreach (var face in Faces)
+            {
+                faceIndices.Add(face.GetHalfedges().Select(edge => hlookup[edge.Name]));
+            }
+            // vertices to faces
+            foreach (var vertex in Vertices)
+            {
+                var he = vertex.Halfedges;
+                if (he[0].Next.Pair == null)
+                    he.Add(he[0].Next);
+                faceIndices.Add(he.Select(edge => hlookup[edge.Name]));
+            }
+            return new Mesh(vertexPoints, faceIndices);
+        }
         #endregion
 
         #region geometry methods
