@@ -182,7 +182,7 @@ namespace Buckminster.Types
         /// <summary>
         /// Conway's ambo operator
         /// </summary>
-        /// <returns>the dual as a new mesh</returns>
+        /// <returns>the ambo as a new mesh</returns>
         public Mesh Ambo()
         {
             // Create points at midpoint of unique halfedges (edges to vertices) and create lookup table
@@ -213,6 +213,33 @@ namespace Buckminster.Types
                 if (he[0].Next.Pair == null)
                     he.Add(he[0].Next);
                 faceIndices.Add(he.Select(edge => hlookup[edge.Name]));
+            }
+            return new Mesh(vertexPoints, faceIndices);
+        }
+        /// <summary>
+        /// Conway's kis operator
+        /// </summary>
+        /// <returns>the kis as a new mesh</returns>
+        public Mesh Kis()
+        {
+            // vertices and faces to vertices
+            var vertexPoints = Enumerable.Concat(Vertices.Select(v => v.Position), Faces.Select(f => f.Centroid));
+            // vertex lookup
+            Dictionary<string, int> vlookup = new Dictionary<string, int>();
+            int n = Vertices.Count;
+            for (int i = 0; i < n; i++)
+            {
+                vlookup.Add(Vertices[i].Name, i);
+            }
+            // create new tri-faces (like a fan)
+            var faceIndices = new List<IEnumerable<int>>(); // faces as vertex indices
+            for (int i = 0; i < Faces.Count; i++)
+            {
+                foreach (var edge in Faces[i].GetHalfedges())
+                {
+                    // create new face from edge start, edge end and centroid
+                    faceIndices.Add(new int[]{vlookup[edge.Prev.Vertex.Name], vlookup[edge.Vertex.Name], i + n});
+                }
             }
             return new Mesh(vertexPoints, faceIndices);
         }

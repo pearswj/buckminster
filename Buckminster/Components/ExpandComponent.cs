@@ -5,7 +5,7 @@ using Buckminster.Types;
 
 namespace Buckminster.Components
 {
-    public class AmboComponent : GH_Component
+    public class ExpandComponent : GH_Component
     {
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
@@ -14,9 +14,9 @@ namespace Buckminster.Components
         /// Subcategory the panel. If you use non-existing tab or panel names, 
         /// new tabs/panels will automatically be created.
         /// </summary>
-        public AmboComponent()
-            : base("Buckminster's Ambo Component", "Ambo",
-                "Applies Conway's ambo operator to the input mesh.",
+        public ExpandComponent()
+            : base("Buckminster's Expand Component", "Expand",
+                "Applies Conway's expand operator to the input mesh.",
                 "Buckminster", "Conway")
         {
         }
@@ -34,7 +34,7 @@ namespace Buckminster.Components
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddParameter(new MeshParam(), "Mesh", "M", "Ambo mesh", GH_ParamAccess.item);
+            pManager.AddParameter(new MeshParam(), "Mesh", "M", "Dual mesh", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace Buckminster.Components
             Mesh mesh = null;
             if (!DA.GetData(0, ref mesh)) { return; }
 
-            DA.SetData(0, mesh.Ambo());
+            DA.SetData(0, mesh.Ambo().Ambo());
         }
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace Buckminster.Components
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("{fe82f9bc-689e-4114-a283-e6aca3a6db4e}"); }
+            get { return new Guid("{abbb4a7d-2d7b-462f-900f-de3a17622e6f}"); }
         }
     }
 }

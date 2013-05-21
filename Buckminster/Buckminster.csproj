@@ -61,6 +61,10 @@
   <ItemGroup>
     <Compile Include="Analysis.cs" />
     <Compile Include="Components\AmboComponent.cs" />
+    <Compile Include="Components\JoinComponent.cs" />
+    <Compile Include="Components\ExpandComponent.cs" />
+    <Compile Include="Components\OrthoComponent.cs" />
+    <Compile Include="Components\KisComponent.cs" />
     <Compile Include="Components\ExtrudeDynamicComponent.cs" />
     <Compile Include="Components\DeconstructMeshComponent.cs" />
     <Compile Include="Components\OffsetDynamicComponent.cs" />

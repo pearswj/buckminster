@@ -16,7 +16,7 @@ namespace Buckminster.Components
         /// </summary>
         public DualComponent()
             : base("Buckminster's Dual Component", "Dual",
-                "Returns the dual of the input mesh.",
+                "Applies Conway's dual operator to the input mesh.",
                 "Buckminster", "Conway")
         {
         }
