@@ -68,6 +68,8 @@ namespace Buckminster.Components
             
             //List<string> output = new List<string>();
 
+            #if (!TEST)
+
             Vector3d[] displacements;
             double[] forces;
             if (!Buckminster.Analysis.StiffnessMethod(nodes, bars_s, bars_e, properties, loads, supports, out displacements, out forces))
@@ -78,6 +80,8 @@ namespace Buckminster.Components
 
             DA.SetDataList(0, displacements);
             DA.SetDataList(1, forces);
+
+            #endif
 
             //DA.SetDataList(0, output);
         }

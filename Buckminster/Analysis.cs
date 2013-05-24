@@ -3,10 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+#if (!TEST)
 using Rhino.Geometry;
-//using System.Windows.Media.Media3D;
-//using Vector3d = System.Windows.Media.Media3D.Vector3D;
-//using Point3d = System.Windows.Media.Media3D.Point3D;
+#else
+using System.Windows.Media.Media3D;
+using Vector3d = System.Windows.Media.Media3D.Vector3D;
+using Point3d = System.Windows.Media.Media3D.Point3D;
+#endif
+
 using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace Buckminster
@@ -164,7 +168,7 @@ namespace Buckminster
                 }
             }
 
-            var inverse_stiffness_matrix = DenseMatrix.OfArray(stiffness_matrix).Inverse();
+            var inverse_stiffness_matrix = SparseMatrix.OfArray(stiffness_matrix).Inverse();
 
             var force_vector_storage = new double[num_nodes * 3];
             var force_vector = new DenseVector(force_vector_storage);
