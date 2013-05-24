@@ -1,0 +1,24 @@
+BUCKMINSTER 0.2.0 (REV 0002) 24 May 2013
+
+- Decrease likelihood that two vertices will have the same 'key' in very large meshes. (#5)
++ Ribbon component... (#2)
+  * handles open meshes (sort of) and can be animated.
+  * option to add vertices to 'ribboned edges' to preserve geometry during subdivision.
++ Extrude component, using new 'per-vertex' offset. (#2)
+- Don't allow creation of faces with less that two edges.
+- Increase stability of Chebychev Net method. (#6)
++ Chebychev Net can extend beyond 'axis', covering more of the surface, and now includes option to animate. (#7)
++ Append one mesh to another.
+- LaceDual adjusted to output a mesh (instead of lines). Uses naked halfedge pairs to represent 'web' elements.
++ 3D FE analysis using matrix stiffness method... (#4)
+  * uses Math.NET Numerics dll.
+  * outputs displacements and bar forces.
+  * extraction component included to get required data from mesh.
++ Unit tests for stiffness method. (#4)
++ Alot of tidying up and refactoring! (#3)
+
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+BUCKMINSTER 0.1.0 (REV 0001) 11 April 2013
+
++ Custom n-gon mesh for Grasshopper, using Halfedge data structure. (#1)
