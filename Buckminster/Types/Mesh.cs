@@ -12,7 +12,7 @@ namespace Buckminster.Types
         public Mesh()
         {
             Halfedges = new MeshHalfedgeList(this);
-            Vertices = new List<Vertex>();
+            Vertices = new MeshVertexList(this);
             Faces = new MeshFaceList(this);
         }
         /// <summary>
@@ -68,6 +68,8 @@ namespace Buckminster.Types
 
             // Find and link halfedge pairs
             Halfedges.MatchPairs();
+
+            //Vertices.CullUnused();
         }
         private void InitIndexed(IEnumerable<Point3f> verticesByPoints, IEnumerable<IEnumerable<int>> facesByVertexIndices)
         {
@@ -95,8 +97,7 @@ namespace Buckminster.Types
 
         #region properties
         public MeshHalfedgeList Halfedges { get; private set; }
-        public List<Vertex> Vertices { get; private set; }
-        //public List<Face> Faces { get; private set; }
+        public MeshVertexList Vertices { get; private set; }
         public MeshFaceList Faces { get; private set; }
         public bool IsValid
         {
@@ -135,46 +136,32 @@ namespace Buckminster.Types
         /// <returns>the dual as a new mesh</returns>
         public Mesh Dual()
         {
-            //Mesh dual = new Mesh();
-
             // Create vertices from faces
-            //dual.Vertices.Capacity = Faces.Count;
             List<Point3f> vertexPoints = new List<Point3f>(Faces.Count);
             foreach (Face f in Faces)
-            {
                 vertexPoints.Add(f.Centroid);
-            }
 
             // Create sublist of non-boundary vertices
-            MeshVertexList subset = new MeshVertexList();
-            foreach (Vertex v in Vertices)
+            var subset = new Dictionary<string, Vertex>(Vertices.Count);
+            foreach (var he in Halfedges)
             {
-                subset.Add(v);
-            }
-            foreach (Halfedge h in Halfedges)
-            {
-                if (h.Pair == null)
-                {
-                    subset.Remove(h.Vertex.Name);
-                }
+		        if (he.Pair != null && !subset.ContainsKey(he.Vertex.Name))
+                    subset.Add(he.Vertex.Name, he.Vertex);
             }
 
             // List new faces by their vertex indices
             // (i.e. old vertices by their face indices)
             Dictionary<string, int> flookup = new Dictionary<string, int>();
             for (int i = 0; i < Faces.Count; i++)
-            {
                 flookup.Add(Faces[i].Name, i);
-            }
-            List<int>[] faceIndices = new List<int>[subset.Count];
-            for (int i = 0; i < subset.Count; i++)
+
+            var faceIndices = new List<List<int>>(subset.Count);
+            foreach (var v in subset.Values)
             {
                 List<int> fIndex = new List<int>();
-                foreach (Face f in subset[i].GetVertexFaces())
-                {
+                foreach (Face f in v.GetVertexFaces())
                     fIndex.Add(flookup[f.Name]);
-                }
-                faceIndices[i] = fIndex;
+                faceIndices.Add(fIndex);
             }
 
             return new Mesh(vertexPoints, faceIndices);
@@ -210,10 +197,12 @@ namespace Buckminster.Types
             foreach (var vertex in Vertices)
             {
                 var he = vertex.Halfedges;
-                if (he[0].Next.Pair == null)
-                    he.Add(he[0].Next);
+                if (he.Count == 0) continue; // no halfedges
+                if (he[0].Next.Pair == null) continue; // boundary vertex
+                    //he.Add(he[0].Next);
                 faceIndices.Add(he.Select(edge => hlookup[edge.Name]));
             }
+
             return new Mesh(vertexPoints, faceIndices);
         }
         /// <summary>
@@ -359,7 +348,7 @@ namespace Buckminster.Types
                 all_new_vertices.Add(new_vertices);
             }
 
-            // change edges to reference new vertices (and cull old vertices)
+            // change edges to reference new vertices
             for (int k = 0; k < Vertices.Count; k++)
             {
                 Vertex v = ribbon.Vertices[k];
@@ -370,9 +359,12 @@ namespace Buckminster.Types
                     if (!ribbon.Halfedges.SetVertex(edge, all_new_vertices[k][c++]))
                         edge.Vertex = all_new_vertices[k][c];
                 }
+                //v.Halfedge = null; // unlink from halfedge as no longer in use (culled later)
+                // note: new vertices don't link to any halfedges in the mesh until later
             }
 
-            ribbon.Vertices.RemoveRange(0, Vertices.Count); // cull old vertices
+            // cull old vertices
+            ribbon.Vertices.RemoveRange(0, Vertices.Count);
 
             // use existing edges to create 'ribbon' faces
             MeshHalfedgeList temp = new MeshHalfedgeList();
@@ -452,7 +444,7 @@ namespace Buckminster.Types
         }
         public Mesh Extrude(List<double> distance, bool symmetric)
         {
-            Mesh ext, top;
+            Mesh ext, top; // ext (base) == target
             if (symmetric)
             {
                 ext = Offset(distance.Select(d => 0.5 * d).ToList());
@@ -466,16 +458,12 @@ namespace Buckminster.Types
 
             top.Halfedges.Flip();
 
-            ext.Vertices.AddRange(top.Vertices);
-            foreach (var h in top.Halfedges)
-            {
-                ext.Halfedges.Add(h);
-            }
-            foreach (var f in top.Faces)
-            {
-                ext.Faces.Add(f);
-            }
+            // append top to ext (can't use Append() because copy would reverse face loops)
+            foreach (var v in top.Vertices) ext.Vertices.Add(v);
+            foreach (var h in top.Halfedges) ext.Halfedges.Add(h);
+            foreach (var f in top.Faces) ext.Faces.Add(f);
 
+            // get indices of naked halfedges in source mesh
             var naked = Halfedges.Select((item, index) => index)
                 .Where(i => Halfedges[i].Pair == null).ToList();
 
@@ -511,7 +499,7 @@ namespace Buckminster.Types
             return base.ToString() + string.Format(" (V:{0} F:{1})", Vertices.Count, Faces.Count);
         }
         /// <summary>
-        /// Get the positions of all mesh vertices. Note that points are duplicated.
+        /// Gets the positions of all mesh vertices. Note that points are duplicated.
         /// </summary>
         /// <returns>a list of vertex positions</returns>
         private Point3f[] ListVerticesByPoints()
@@ -524,6 +512,11 @@ namespace Buckminster.Types
             }
             return points;
         }
+        /// <summary>
+        /// Gets the indices of vertices in each face loop (i.e. index face-vertex data structure).
+        /// Used for duplication and conversion to other mesh types, such as Rhino's.
+        /// </summary>
+        /// <returns>An array of lists of vertex indices.</returns>
         private List<int>[] ListFacesByVertexIndices()
         {
             List<int>[] fIndex = new List<int>[Faces.Count];
@@ -545,8 +538,9 @@ namespace Buckminster.Types
         }
         /// <summary>
         /// Convert to Rhino mesh type.
+        /// Recursively triangulates until only tri-/quad-faces remain.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A Rhino mesh.</returns>
         public Rhino.Geometry.Mesh ToRhinoMesh()
         {
             Rhino.Geometry.Mesh target = new Rhino.Geometry.Mesh();

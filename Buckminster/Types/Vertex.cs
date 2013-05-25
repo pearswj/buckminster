@@ -55,6 +55,7 @@ namespace Buckminster.Types
             get
             {
                 List<Halfedge> edges = new List<Halfedge>();
+                if (Halfedge == null) return edges;
                 bool boundary = false;
                 Halfedge edge = Halfedge;
                 do
@@ -95,6 +96,7 @@ namespace Buckminster.Types
         public List<Face> GetVertexFaces()
         {
             List<Face> adjacent = new List<Face>();
+            if (Halfedge == null) return adjacent;
             bool boundary = false;
             Halfedge edge = Halfedge;
             do
