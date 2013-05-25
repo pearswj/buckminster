@@ -2,7 +2,14 @@
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
+#if (!TEST)
+using Rhino.Geometry;
+#else
 using System.Windows.Media.Media3D;
+using Vector3d = System.Windows.Media.Media3D.Vector3D;
+using Point3d = System.Windows.Media.Media3D.Point3D;
+#endif
+
 using Buckminster;
 
 namespace BuckminsterTest
@@ -23,10 +30,10 @@ namespace BuckminsterTest
                 {0.0, 1.0}
             };
             int n = nodes_temp.GetLength(0);
-            Point3D[] nodes = new Point3D[n];
+            Point3d[] nodes = new Point3d[n];
             for (int i = 0; i < n; i++)
             {
-                nodes[i] = new Point3D(nodes_temp[i, 0], nodes_temp[i, 1], 0.0);
+                nodes[i] = new Point3d(nodes_temp[i, 0], nodes_temp[i, 1], 0.0);
             }
 
             // bars
@@ -41,10 +48,10 @@ namespace BuckminsterTest
                 {0.0, 0.0},
                 {20000.0, 0.0}
             };
-            Vector3D[] loads = new Vector3D[n];
+            Vector3d[] loads = new Vector3d[n];
             for (int i = 0; i < n; i++)
             {
-                loads[i] = new Vector3D(loads_temp[i, 0], loads_temp[i, 1], 0.0);
+                loads[i] = new Vector3d(loads_temp[i, 0], loads_temp[i, 1], 0.0);
             }
 
             // supports
@@ -54,15 +61,15 @@ namespace BuckminsterTest
                 {0, 0},
                 {0, 0}
             };
-            Vector3D[] supports = new Vector3D[supports_temp.GetLength(0)];
+            Vector3d[] supports = new Vector3d[supports_temp.GetLength(0)];
             for (int i = 0; i < supports.Length; i++)
             {
-                supports[i] = new Vector3D(supports_temp[i, 0], supports_temp[i, 1], 1.0);
+                supports[i] = new Vector3d(supports_temp[i, 0], supports_temp[i, 1], 1.0);
             }
 
             // Call the method
 
-            Vector3D[] displacements;
+            Vector3d[] displacements;
             double[] forces;
             Buckminster.Analysis.StiffnessMethod(nodes, bars_s, bars_e, bars_mat, loads, supports, out displacements, out forces);
 
@@ -134,10 +141,10 @@ namespace BuckminsterTest
                 {6, 1},
             };
             int n = nodes_temp.GetLength(0);
-            Point3D[] nodes = new Point3D[n];
+            Point3d[] nodes = new Point3d[n];
             for (int i = 0; i < n; i++)
             {
-                nodes[i] = new Point3D(nodes_temp[i, 0], nodes_temp[i, 1], 0.0);
+                nodes[i] = new Point3d(nodes_temp[i, 0], nodes_temp[i, 1], 0.0);
             }
 
             // bars
@@ -162,10 +169,10 @@ namespace BuckminsterTest
                 {0.0, 0.0},
                 {0.0, 0.0}
             };
-            Vector3D[] loads = new Vector3D[n];
+            Vector3d[] loads = new Vector3d[n];
             for (int i = 0; i < n; i++)
             {
-                loads[i] = new Vector3D(loads_temp[i, 0], loads_temp[i, 1], 0.0);
+                loads[i] = new Vector3d(loads_temp[i, 0], loads_temp[i, 1], 0.0);
             }
 
             // supports
@@ -185,15 +192,15 @@ namespace BuckminsterTest
                 {0, 1},
                 {0, 0}
             };
-            Vector3D[] supports = new Vector3D[supports_temp.GetLength(0)];
+            Vector3d[] supports = new Vector3d[supports_temp.GetLength(0)];
             for (int i = 0; i < supports.Length; i++)
             {
-                supports[i] = new Vector3D(supports_temp[i, 0], supports_temp[i, 1], 1.0);
+                supports[i] = new Vector3d(supports_temp[i, 0], supports_temp[i, 1], 1.0);
             }
 
             // Call the method
 
-            Vector3D[] displacements;
+            Vector3d[] displacements;
             double[] forces;
             Buckminster.Analysis.StiffnessMethod(nodes, bars_s, bars_e, bars_mat, loads, supports, out displacements, out forces);
 
