@@ -51,6 +51,7 @@ namespace Buckminster.Components
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+            pManager.AddNumberParameter("Volume", "Volume", "Volume", GH_ParamAccess.item);
             pManager.AddLineParameter("Bars", "Bars", "Bars", GH_ParamAccess.list);
             pManager.AddNumberParameter("Radii", "Radii", "Radii", GH_ParamAccess.list);
             pManager.AddColourParameter("Colours", "Colours", "Colours", GH_ParamAccess.list);
@@ -79,7 +80,7 @@ namespace Buckminster.Components
             if (reset) // Rebuild model from external source
             {
                 // Create molecular structure
-                theWorld = new Molecular();
+                theWorld = new Molecular(mesh.Vertices.Count);
 
                 Dictionary<string, int> vlookup = new Dictionary<string, int>();
                 for (int i = 0; i < mesh.Vertices.Count; i++)
@@ -97,7 +98,7 @@ namespace Buckminster.Components
                 if (m_mode == Mode.FullyConnected) // discard mesh edges and used a fully-connected ground-structure
                 {
                     for (int i = 0; i < mesh.Vertices.Count; i++)
-                        for (int j = i; j < mesh.Vertices.Count; j++)
+                        for (int j = i + 1; j < mesh.Vertices.Count; j++)
                             theWorld.NewEdge(theWorld.listVertexes[i], theWorld.listVertexes[j]);
                 }
                 else // use edges from mesh
@@ -109,23 +110,28 @@ namespace Buckminster.Components
                         theWorld.NewEdge(start, end);
                     }
                 }
+
+                TopOpt.SetWorld(theWorld, 1, 1, 0);
             }
             
             // solve
-            TopOpt.SetWorld(theWorld, 1, 1, 0);
             if (m_mode == Mode.MemberAdding)
             {
                 TopOpt.AddEdges(0.1, 0);
-                if (TopOpt.MembersAdded == 0) return;
+                //if (TopOpt.MembersAdded == 0) return;
+                // note: first time member adding is called, reset is still true so world
+                // is rebuilt and all displacements get reset (hence no members added)
             }
             TopOpt.SolveProblem();
-            TopOpt.RemoveUnstressed(0.0000001);
+            //TopOpt.RemoveUnstressed(1E-6);
+            // Don't remove unstressed bars, just don't show them! (See below.)
 
-            IEnumerable<Line> lines = theWorld.listEdges.Select(e => new Line(e.StartVertex.Coord, e.EndVertex.Coord));
-            DA.SetDataList(0, lines);
-            DA.SetDataList(1, theWorld.listEdges.Select(e => e.Radius));
-            DA.SetDataList(2, theWorld.listEdges.Select(e => e.Colour));
-            DA.SetDataList(3, theWorld.listVertexes.Select(v => v.Velocity));
+            DA.SetData(0, TopOpt.Volume);
+            var subset = theWorld.listEdges.Where(e => e.Radius > 1E-6);
+            DA.SetDataList(1, subset.Select(e => new Line(e.StartVertex.Coord, e.EndVertex.Coord)));
+            DA.SetDataList(2, subset.Select(e => e.Radius));
+            DA.SetDataList(3, subset.Select(e => e.Colour));
+            DA.SetDataList(4, theWorld.listVertexes.Select(v => v.Velocity));
         }
 
         /// <summary>
@@ -153,11 +159,13 @@ namespace Buckminster.Components
         {
             foreach (var edge in theWorld.listEdges)
 	        {
-                System.Drawing.Color colour = edge.Colour;
-                if (this.Attributes.Selected) colour = args.WireColour_Selected;
-                var thickness = (int)Math.Floor(edge.Radius * 1000);
-                if (thickness < args.DefaultCurveThickness) thickness = args.DefaultCurveThickness;
-                args.Display.DrawLine(edge.StartVertex.Coord, edge.EndVertex.Coord, colour, thickness);
+                if (edge.Radius > 1E-6) // don't draw unstressed
+                {
+                    System.Drawing.Color colour = this.Attributes.Selected ? args.WireColour_Selected : edge.Colour;
+                    var thickness = (int)Math.Floor(edge.Radius * 1000);
+                    if (thickness < args.DefaultCurveThickness) thickness = args.DefaultCurveThickness;
+                    args.Display.DrawLine(edge.StartVertex.Coord, edge.EndVertex.Coord, colour, thickness);
+                }
             }
         }
 

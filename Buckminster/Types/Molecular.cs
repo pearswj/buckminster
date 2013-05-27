@@ -15,6 +15,7 @@ namespace Buckminster.Types
 {
     /// <summary>
     /// Simple data structure for bars and nodes.
+    /// Build to interface with PS TopOpt code. Needs refining...
     /// </summary>
     public class Molecular
     {
@@ -23,10 +24,10 @@ namespace Buckminster.Types
         //public List<Node> listOuterVertexes;
         //public List<Node> listInnerVertexes;
 
-        public Molecular()
+        public Molecular(int vcount)
         {
-            listVertexes = new List<Node>();
-            listEdges = new List<Bar>();
+            listVertexes = new List<Node>(vcount);
+            listEdges = new List<Bar>(Convert.ToInt32(vcount * (vcount - 1) * 0.5));
             //listOuterVertexes = new List<Node>();
             //listInnerVertexes = new List<Node>();
         }
@@ -76,7 +77,7 @@ namespace Buckminster.Types
             return null;
         }
 
-        public Constraint newConstraint(bool x, bool y, bool z)
+        public Constraint NewConstraint(bool x, bool y, bool z)
         {
             return new Constraint(x, y, z);
         }

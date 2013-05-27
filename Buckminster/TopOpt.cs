@@ -70,9 +70,11 @@ namespace Buckminster
             List<Variable> listTensions = new List<Variable>(theWorld.listEdges.Count);
             List<Google.OrTools.LinearSolver.Constraint> listXConstraints = new List<Google.OrTools.LinearSolver.Constraint>(theWorld.listVertexes.Count);
             List<Google.OrTools.LinearSolver.Constraint> listYConstraints = new List<Google.OrTools.LinearSolver.Constraint>(theWorld.listVertexes.Count);
+            List<Google.OrTools.LinearSolver.Constraint> listZConstraints = new List<Google.OrTools.LinearSolver.Constraint>(theWorld.listVertexes.Count);
             Variable aVariable;
             Google.OrTools.LinearSolver.Constraint xConstraint = null;
             Google.OrTools.LinearSolver.Constraint yConstraint = null;
+            Google.OrTools.LinearSolver.Constraint zConstraint = null;
             Vector3d aVector;
             List<int> listConstraintExists = new List<int>(theWorld.listVertexes.Count);
 
@@ -96,58 +98,69 @@ namespace Buckminster
                     {
                         xConstraint = theSolver.MakeConstraint(0.0, 0.0);
                         yConstraint = theSolver.MakeConstraint(0.0, 0.0);
+                        zConstraint = theSolver.MakeConstraint(0.0, 0.0);
                     }
                     else
                     {
                         xConstraint = theSolver.MakeConstraint(aVertex.Force.X, aVertex.Force.X);
                         yConstraint = theSolver.MakeConstraint(aVertex.Force.Y, aVertex.Force.Y);
+                        zConstraint = theSolver.MakeConstraint(aVertex.Force.Z, aVertex.Force.Z);
                     }
                 }
                 else
                 {
                     xConstraint = null;
                     yConstraint = null;
+                    zConstraint = null;
                     if (aVertex.Force == null)
                     {
                         if (!aVertex.Fixity.X) xConstraint = theSolver.MakeConstraint(0.0, 0.0);
                         if (!aVertex.Fixity.Y) yConstraint = theSolver.MakeConstraint(0.0, 0.0);
+                        if (!aVertex.Fixity.Z) zConstraint = theSolver.MakeConstraint(0.0, 0.0);
                     }
                     else
                     {
                         if (!aVertex.Fixity.X) xConstraint = theSolver.MakeConstraint(aVertex.Force.X, aVertex.Force.X);
                         if (!aVertex.Fixity.Y) yConstraint = theSolver.MakeConstraint(aVertex.Force.Y, aVertex.Force.Y);
+                        if (!aVertex.Fixity.Z) zConstraint = theSolver.MakeConstraint(aVertex.Force.Z, aVertex.Force.Z);
                     }
                 }
                 listConstraintExists.Add(0);
                 if (xConstraint != null) listConstraintExists[aVertex.Index] += 1;
                 if (yConstraint != null) listConstraintExists[aVertex.Index] += 2;
+                if (zConstraint != null) listConstraintExists[aVertex.Index] += 4;
 
-                if ((xConstraint!=null)||(yConstraint!=null))  //  If both Fixed then don't bother
+                if ((xConstraint != null) || (yConstraint != null) || (zConstraint != null))  //  If fully Fixed then don't bother
                 {
                     foreach (Edge aEdge in aVertex.listEdgesStarting)
                     {
                         aVector = aEdge.StartVertex.Coord-aEdge.EndVertex.Coord;
-                        aVector.Unitize(); //.Normalise();
+                        aVector.Unitize();
                         aVariable = listCompressions[aEdge.Index];
-                        if (xConstraint!=null) xConstraint.SetCoefficient(aVariable, -aVector.X);
-                        if (yConstraint!=null) yConstraint.SetCoefficient(aVariable, -aVector.Y);
+                        if (xConstraint != null) xConstraint.SetCoefficient(aVariable, -aVector.X);
+                        if (yConstraint != null) yConstraint.SetCoefficient(aVariable, -aVector.Y);
+                        if (zConstraint != null) zConstraint.SetCoefficient(aVariable, -aVector.Z);
                         aVariable = listTensions[aEdge.Index];
-                        if (xConstraint!=null) xConstraint.SetCoefficient(aVariable, aVector.X);
-                        if (yConstraint!=null) yConstraint.SetCoefficient(aVariable, aVector.Y);
+                        if (xConstraint != null) xConstraint.SetCoefficient(aVariable, aVector.X);
+                        if (yConstraint != null) yConstraint.SetCoefficient(aVariable, aVector.Y);
+                        if (zConstraint != null) zConstraint.SetCoefficient(aVariable, aVector.Z);
                     }
                     foreach (Edge aEdge in aVertex.listEdgesEnding)
                     {
                         aVector = aEdge.EndVertex.Coord-aEdge.StartVertex.Coord;
-                        aVector.Unitize(); //.Normalise();
+                        aVector.Unitize();
                         aVariable = listCompressions[aEdge.Index];
                         if (xConstraint != null) xConstraint.SetCoefficient(aVariable, -aVector.X);
                         if (yConstraint != null) yConstraint.SetCoefficient(aVariable, -aVector.Y);
+                        if (zConstraint != null) zConstraint.SetCoefficient(aVariable, -aVector.Z);
                         aVariable = listTensions[aEdge.Index];
                         if (xConstraint != null) xConstraint.SetCoefficient(aVariable, aVector.X);
                         if (yConstraint != null) yConstraint.SetCoefficient(aVariable, aVector.Y);
+                        if (zConstraint != null) zConstraint.SetCoefficient(aVariable, aVector.Z);
                     }
-                    if (xConstraint!=null) listXConstraints.Add(xConstraint);
-                    if (yConstraint!=null) listYConstraints.Add(yConstraint);
+                    if (xConstraint != null) listXConstraints.Add(xConstraint);
+                    if (yConstraint != null) listYConstraints.Add(yConstraint);
+                    if (zConstraint != null) listZConstraints.Add(zConstraint);
                 }
             }
             System.Diagnostics.Debug.WriteLine(String.Format("Number of Variables {0} : Number of Constraints {1}", theSolver.NumVariables(), theSolver.NumConstraints()));
@@ -188,16 +201,17 @@ namespace Buckminster
                     //System.Diagnostics.Debug.WriteLine(String.Format("Stress in Edge {0:D4} = {1:F6}", aEdge.Number, aEdge.Radius));
                 }
 
-                double x_dual, y_dual;
-                int x_index, y_index;
-                x_index = y_index = 0;
+                double x_dual, y_dual, z_dual;
+                int x_index, y_index, z_index;
+                x_index = y_index = z_index = 0;
                 foreach (Vertex aVertex in theWorld.listVertexes)
                 {
-                    x_dual = y_dual = 0.0;
-                    if ((listConstraintExists[aVertex.Index]&1)>0) x_dual = listXConstraints[x_index++].DualValue();
-                    if ((listConstraintExists[aVertex.Index]&2)>0) y_dual = listYConstraints[y_index++].DualValue();
-                    aVertex.Velocity = new Vector3d(x_dual, y_dual, 0.0);  //  Store Virtual Displacements in Vertex Velocity
-                    System.Diagnostics.Debug.WriteLine(String.Format("Dual Displacement in Vertex#{0} = ({1:F6},{2:F6})", aVertex.Number, aVertex.Velocity.X, aVertex.Velocity.Y));
+                    x_dual = y_dual = z_dual = 0.0;
+                    if ((listConstraintExists[aVertex.Index] & 1) > 0) x_dual = listXConstraints[x_index++].DualValue();
+                    if ((listConstraintExists[aVertex.Index] & 2) > 0) y_dual = listYConstraints[y_index++].DualValue();
+                    if ((listConstraintExists[aVertex.Index] & 4) > 0) z_dual = listZConstraints[z_index++].DualValue();
+                    aVertex.Velocity = new Vector3d(x_dual, y_dual, z_dual);  //  Store Virtual Displacements in Vertex Velocity
+                    System.Diagnostics.Debug.WriteLine(String.Format("Dual Displacement in Vertex#{0} = ({1:F6},{2:F6},{3:F6})", aVertex.Number, aVertex.Velocity.X, aVertex.Velocity.Y, aVertex.Velocity.Z));
                 }
                 //World.Make_VelocityArrowsArray = true;
             }
@@ -257,7 +271,7 @@ namespace Buckminster
 
                     //  Calculate violation
                     aDeltaVector = eVertex.Coord - sVertex.Coord;
-                    length = aDeltaVector.Length; //.GetLength();
+                    length = aDeltaVector.Length;
                     violation = ((eVertex.Velocity - sVertex.Velocity) * aDeltaVector)/(length + joint_cost);
                     violation /= length;
                     violation = Math.Max(violation * limit_tension, -violation * limit_compression);
