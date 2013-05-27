@@ -33,6 +33,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Google.OrTools.LinearSolver">
+      <HintPath>..\lib\Google.OrTools.LinearSolver.dll</HintPath>
+    </Reference>
     <Reference Include="MathNet.Numerics">
       <HintPath>..\packages\MathNet.Numerics.2.5.0\lib\net40\MathNet.Numerics.dll</HintPath>
     </Reference>
@@ -80,9 +83,11 @@
     <Compile Include="Components\LaceDualComponent.cs" />
     <Compile Include="Components\ChebychevComponent.cs" />
     <Compile Include="Components\StiffnessMethodComponent.cs" />
+    <Compile Include="Components\TopOptComponent.cs" />
     <Compile Include="Components\WriteRobotSTRComponent.cs" />
     <Compile Include="MeshGoo.cs" />
     <Compile Include="MeshParam.cs" />
+    <Compile Include="TopOpt.cs" />
     <Compile Include="Types\Collections\MeshFaceList.cs" />
     <Compile Include="Types\Collections\MeshHalfedgeList.cs" />
     <Compile Include="Types\Collections\MeshVertexList.cs" />
@@ -95,6 +100,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="Types\Molecular.cs" />
     <Compile Include="Types\Vertex.cs" />
     <Compile Include="BuckminsterInfo.cs" />
     <Compile Include="Types\Mesh.cs" />
