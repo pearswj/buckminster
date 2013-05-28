@@ -6,6 +6,9 @@ using Buckminster.Types.Collections;
 
 namespace Buckminster.Types
 {
+    /// <summary>
+    /// A class for manifold meshes which uses the Halfedge data structure.
+    /// </summary>
     public class Mesh
     {
         #region constructors

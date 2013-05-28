@@ -267,7 +267,7 @@ namespace Buckminster.Components
 
         private void Menu_AnimateClicked(Object sender, EventArgs e)
         {
-            //RecordUndoEvent("Name Of Undo");
+            RecordUndoEvent("AnimateChebychev");
             SetValue("Animate", !this.GetValue("Animate", false));
             ExpireSolution(true);
         }
