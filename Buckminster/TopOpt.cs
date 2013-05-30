@@ -63,7 +63,19 @@ namespace Buckminster
         /// <summary>
         /// Linear Programming Solver of Ax=B
         /// </summary>
+        /// <returns>True if optimal solution found.</returns>
         static public bool SolveProblem()
+        {
+            int rtn; // trash this
+            return SolveProblem(out rtn);
+        }
+
+        /// <summary>
+        /// Linear Programming Solver of Ax=B 
+        /// </summary>
+        /// <param name="returnCode">Gives access to the specific return code of the solver.</param>
+        /// <returns>True if optimal solution found.</returns>
+        static public bool SolveProblem(out int returnCode)
         {
             Solver theSolver = new Solver("TopOpt Test", Google.OrTools.LinearSolver.Solver.CLP_LINEAR_PROGRAMMING);
             List<Variable> listCompressions = new List<Variable>(theWorld.listEdges.Count);
@@ -181,19 +193,16 @@ namespace Buckminster
                     if (Math.Abs(stress)<0.0000001) stress = -listCompressions[aEdge.Index].SolutionValue();
                     if (Math.Abs(stress) < 0.0000001)
                     {
-                        //aEdge.Colour.FromColor(System.Drawing.Color.DarkGray);
                         aEdge.Colour = Color.FromArgb(100, Color.DarkGray);
                     }
                     else
                     {
                         if (stress < 0.0)
                         {
-                            //aEdge.Colour.FromColor(System.Drawing.Color.Red);
                             aEdge.Colour = Color.FromArgb(100, Color.Red);
                         }
                         else
                         {
-                            //aEdge.Colour.FromColor(System.Drawing.Color.Blue);
                             aEdge.Colour = Color.FromArgb(100, Color.Blue);
                         }
                     }
@@ -215,32 +224,8 @@ namespace Buckminster
                 }
                 //World.Make_VelocityArrowsArray = true;
             }
-            else
-            {
-                if (result == Solver.INFEASIBLE)
-                {
-                    System.Windows.Forms.MessageBox.Show(String.Format("Infeasible Problem Definition"));
-                    //System.Diagnostics.Debug.WriteLine(String.Format("    {0}", theSolver.ComputeExactConditionNumber()));
-                }
-                else
-                {
-                    if (result == Solver.UNBOUNDED)
-                    {
-                        System.Windows.Forms.MessageBox.Show(String.Format("Unbounded Problem Definition"));
-                    }
-                    else
-                    {
-                        if (result == Solver.FEASIBLE)
-                        {
-                            System.Windows.Forms.MessageBox.Show(String.Format("Feasible Problem Stopped by Limit"));
-                        }
-                        else
-                        {
-                            System.Windows.Forms.MessageBox.Show(String.Format("Abnormal Problem - Some Kind of Error"));
-                        }
-                    }
-                }
-            }
+
+            returnCode = result; // return code
 
             return (result == Solver.OPTIMAL);
         }
