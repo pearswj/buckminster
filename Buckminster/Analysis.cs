@@ -3,18 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-#if (!TEST)
 using Rhino.Geometry;
-#else
-using System.Windows.Media.Media3D;
-using Vector3d = System.Windows.Media.Media3D.Vector3D;
-using Point3d = System.Windows.Media.Media3D.Point3D;
-#endif
-
 using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace Buckminster
 {
+    [Obsolete("Consider using SharpFE instead.")]
     public class Analysis
     {
         public static bool StiffnessMethod(

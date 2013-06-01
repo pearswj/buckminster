@@ -1,23 +1,17 @@
 ﻿using System;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-#if (!TEST)
+using NUnit.Framework;
 using Rhino.Geometry;
-#else
-using System.Windows.Media.Media3D;
-using Vector3d = System.Windows.Media.Media3D.Vector3D;
-using Point3d = System.Windows.Media.Media3D.Point3D;
-#endif
-
 using Buckminster;
 
-namespace BuckminsterTest
+namespace Buckminster.Tests
 {
-    [TestClass]
+    //[TestClass]
+    [TestFixture]
     public class AnalysisTests
     {
-        [TestMethod]
+        //[TestMethod]
+        [Test]
         public void TestSimpleStiffnessMethod()
         {
             // Set-up model (see Pinned2D - Nodes_X.txt and Lines_X.txt)
@@ -118,7 +112,8 @@ namespace BuckminsterTest
 
         }
 
-        [TestMethod]
+        //[TestMethod]
+        [Test]
         public void TestSimpleStiffnessMethod2()
         {
             // Set-up model (see Pinned2D - Nodes.txt and Lines.txt)
