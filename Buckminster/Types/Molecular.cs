@@ -21,15 +21,43 @@ namespace Buckminster.Types
     {
         public List<Node> listVertexes;
         public List<Bar> listEdges;
-        //public List<Node> listOuterVertexes;
-        //public List<Node> listInnerVertexes;
 
         public Molecular(int vcount)
         {
             listVertexes = new List<Node>(vcount);
             listEdges = new List<Bar>(Convert.ToInt32(vcount * (vcount - 1) * 0.5));
-            //listOuterVertexes = new List<Node>();
-            //listInnerVertexes = new List<Node>();
+        }
+
+        public Molecular()
+        {
+            listVertexes = new List<Node>();
+            listEdges = new List<Bar>();
+        }
+
+        public Molecular(Mesh mesh)
+            : this(mesh.Vertices.Count)
+        {
+            // Create molecular structure
+            Dictionary<string, int> vlookup = new Dictionary<string, int>();
+            for (int i = 0; i < mesh.Vertices.Count; i++)
+                vlookup.Add(mesh.Vertices[i].Name, i);
+
+            // add nodes
+            for (int i = 0; i < mesh.Vertices.Count; i++)
+            {
+                Buckminster.Types.Molecular.Node vertex = NewVertex(mesh.Vertices[i].Position);
+                //vertex.Fixity = new Buckminster.Types.Molecular.Constraint(fixities[i]);
+                //vertex.Force = new Vector3d(forces[i]);
+            }
+
+            // add bars (use edges from mesh)
+
+            foreach (var edge in mesh.Halfedges.GetUnique())
+            {
+                Molecular.Node end = listVertexes[vlookup[edge.Vertex.Name]];
+                Molecular.Node start = listVertexes[vlookup[edge.Prev.Vertex.Name]];
+                NewEdge(start, end);
+            }
         }
 
         public Bar NewEdge(Node start, Node end)
@@ -61,6 +89,7 @@ namespace Buckminster.Types
                 edge.EndVertex.listEdgesEnding.Remove(edge);
                 listEdges.Remove(edge);
             }
+            // re-index edges
             for (int i = 0; i < listEdges.Count; i++)
 			{
 			    listEdges[i].Index = i;
@@ -82,6 +111,53 @@ namespace Buckminster.Types
             return new Constraint(x, y, z);
         }
 
+        public bool IsValid
+        {
+            get
+            {
+                return (listEdges != null && listVertexes != null);
+            }
+        }
+        public BoundingBox BoundingBox
+        {
+            get
+            {
+                if (!IsValid) { return BoundingBox.Empty; }
+                BoundingBox result = new BoundingBox(listVertexes.Select(v => v.Coord));
+                result.MakeValid();
+                return result;
+            }
+        }
+
+        public Molecular Duplicate()
+        {
+            var target = new Molecular(listVertexes.Count);
+            foreach (var vertex in listVertexes) target.NewVertex(vertex.Coord);
+            foreach (var edge in listEdges)
+            {
+                target.NewEdge(target.listVertexes[edge.StartVertex.Index],
+                    target.listVertexes[edge.EndVertex.Index]);
+            }
+            return target;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("Molecular (N:{0} L:{1})", listVertexes.Count, listEdges.Count);
+        }
+
+        public void Append(Molecular other)
+        {
+            // similar to Duplicate() but taking account of the shifted node indices
+            int n = listVertexes.Count;
+            foreach (var node in other.listVertexes) NewVertex(node.Coord);
+            foreach (var edge in other.listEdges)
+            {
+                NewEdge(listVertexes[edge.StartVertex.Index + n],
+                    listVertexes[edge.EndVertex.Index + n]);
+            }
+        }
+
         public class Node
         {
             public Node()
@@ -99,7 +175,7 @@ namespace Buckminster.Types
             public Vector3d Velocity { get; set; }
             public override string ToString()
             {
-                return base.ToString() + Coord.ToString();
+                return string.Format("{0} #{1:D3} ({@})", "Molecular.Node", Index, Coord);
             }
         }
 

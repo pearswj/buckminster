@@ -41,7 +41,7 @@ namespace Buckminster.Components
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddParameter(new MeshParam(), "Mesh", "Mesh", "Input mesh", GH_ParamAccess.item);
+            pManager.AddParameter(new MolecularParam(), "Molecular", "Molecular", "Input structure. (Accepts a Rhino mesh, a PolyMesh or a native Molecular data type.)", GH_ParamAccess.item);
             pManager.AddVectorParameter("Fixities", "Fixities", "Nodal support conditions, represented as a vector (0: fixed, 1: free)", GH_ParamAccess.list);
             pManager.AddVectorParameter("Forces", "Forces", "Nodal load conditions, represented as a vector", GH_ParamAccess.list);
             pManager.AddBooleanParameter("Reset", "Reset", "Reset", GH_ParamAccess.item, true);
@@ -69,59 +69,36 @@ namespace Buckminster.Components
             if (DA.Iteration == 0) this.ValuesChanged();
 
             // Collect inputs
-            Mesh mesh = null;
+            Molecular molecular = null;
             List<Vector3d> fixities = new List<Vector3d>();
             List<Vector3d> forces = new List<Vector3d>();
             bool reset = true;
 
-            if (!DA.GetData(0, ref mesh)) return;
+            //if (!DA.GetData(0, ref mesh)) return;
+            if (!DA.GetData(0, ref molecular)) return;
             if (!DA.GetDataList<Vector3d>(1, fixities)) return;
             if (!DA.GetDataList<Vector3d>(2, forces)) return;
             if (!DA.GetData<bool>(3, ref reset)) return;
 
             if (reset) // Rebuild model from external source
             {
-                // Create molecular structure
-                m_world = new Molecular(mesh.Vertices.Count);
+                m_world = molecular.Duplicate(); // copy molecular
 
-                Dictionary<string, int> vlookup = new Dictionary<string, int>();
-                for (int i = 0; i < mesh.Vertices.Count; i++)
-                    vlookup.Add(mesh.Vertices[i].Name, i);
-
-                // add nodes
-                for (int i = 0; i < mesh.Vertices.Count; i++)
+                // Add boundary conditions
+                for (int i = 0; i < m_world.listVertexes.Count; i++)
                 {
-                    Buckminster.Types.Molecular.Node vertex = m_world.NewVertex(mesh.Vertices[i].Position);
-                    vertex.Fixity = new Buckminster.Types.Molecular.Constraint(fixities[i]);
-                    vertex.Force = new Vector3d(forces[i]);
+                    m_world.listVertexes[i].Fixity = new Molecular.Constraint(fixities[i]);
+                    m_world.listVertexes[i].Force = new Vector3d(forces[i]);
                 }
 
-                // add bars
                 if (m_mode == Mode.FullyConnected) // discard mesh edges and used a fully-connected ground-structure
                 {
-                    for (int i = 0; i < mesh.Vertices.Count; i++)
-                        for (int j = i + 1; j < mesh.Vertices.Count; j++)
+                    // clear existing edges from molecular structure
+                    m_world.DeleteElements(m_world.listEdges.ToArray()); // copy list
+                    // add edges to create fully-connected ground-structure
+                    for (int i = 0; i < m_world.listVertexes.Count; i++)
+                        for (int j = i + 1; j < m_world.listVertexes.Count; j++)
                             m_world.NewEdge(m_world.listVertexes[i], m_world.listVertexes[j]);
-                }
-                else // use edges from mesh
-                {
-                    foreach (var edge in mesh.Halfedges.GetUnique())
-                    {
-                        Buckminster.Types.Molecular.Node end = m_world.listVertexes[vlookup[edge.Vertex.Name]];
-                        Buckminster.Types.Molecular.Node start = m_world.listVertexes[vlookup[edge.Prev.Vertex.Name]];
-                        m_world.NewEdge(start, end);
-                    }
-                    if (GetValue("CrossQuads", false))
-                    {
-                        foreach (var face in mesh.Faces) // Cross-brace even sided faces?
-                        {
-                            var vertices = face.GetVertices().Select(v => m_world.listVertexes[vlookup[v.Name]]).ToArray();
-                            int n = vertices.Length;
-                            if (n % 2 == 0) // even number of vertices around face
-                                for (int i = 0; i < n / 2; i++)
-                                    m_world.NewEdge(vertices[i], vertices[n / 2 + i]);
-                        }
-                    }
                 }
 
                 TopOpt.SetWorld(m_world, 1, 1, 0); // set up TopOpt parameters
@@ -192,8 +169,9 @@ namespace Buckminster.Components
 
         public override void DrawViewportWires(IGH_PreviewArgs args)
         {
+            if (m_world == null) return;
             foreach (var edge in m_world.listEdges)
-	        {
+            {
                 if (edge.Radius > 1E-6) // don't draw unstressed
                 {
                     System.Drawing.Color colour = this.Attributes.Selected ? args.WireColour_Selected : edge.Colour;
@@ -209,11 +187,8 @@ namespace Buckminster.Components
             Menu_AppendSeparator(menu);
             ToolStripMenuItem toolStripMenuItem1 = Menu_AppendItem(menu, "Fully-Connected", new EventHandler(this.Menu_FullyConnectedClicked), true, m_mode == Mode.FullyConnected);
             ToolStripMenuItem toolStripMenuItem2 = Menu_AppendItem(menu, "Member-Adding", new EventHandler(this.Menu_MemberAddingClicked), true, m_mode == Mode.MemberAdding);
-            Menu_AppendSeparator(menu);
-            ToolStripMenuItem toolStripMenuItem3 = Menu_AppendItem(menu, "Cross-Quads", new EventHandler(this.Menu_CrossQuadsClicked), true, GetValue("CrossQuads", false));
             toolStripMenuItem1.ToolTipText = "Discard mesh-edges and use a fully-connected ground-structure (slow).";
             toolStripMenuItem2.ToolTipText = "Use the member-adding algorithm (fast).";
-            toolStripMenuItem3.ToolTipText = "Add diagonal bars to all even faces.";
         }
 
         private void Menu_FullyConnectedClicked(Object sender, EventArgs e)
@@ -233,13 +208,6 @@ namespace Buckminster.Components
                 m_mode = Mode.None;
             else
                 m_mode = Mode.MemberAdding;
-            ExpireSolution(true);
-        }
-
-        private void Menu_CrossQuadsClicked(Object sender, EventArgs e)
-        {
-            RecordUndoEvent("CrossQuads");
-            SetValue("CrossQuads", !GetValue("CrossQuads", false));
             ExpireSolution(true);
         }
 

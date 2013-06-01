@@ -13,7 +13,7 @@ namespace Buckminster.Components
         public LaceDualComponent()
             : base("Buckminster's Lace Dual", "Lace",
                 "Constructs a space truss by lacing between a mesh and its dual.",
-                "Buckminster", "Lacing")
+                "Buckminster", "Lace")
         {
         }
 

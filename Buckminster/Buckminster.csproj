@@ -64,8 +64,11 @@
   <ItemGroup>
     <Compile Include="Analysis.cs" />
     <Compile Include="Components\AmboComponent.cs" />
+    <Compile Include="Components\GridProximityComponent.cs" />
     <Compile Include="Components\JoinComponent.cs" />
     <Compile Include="Components\ExpandComponent.cs" />
+    <Compile Include="Components\LaceProximityComponent.cs" />
+    <Compile Include="Components\MolecularPassthruComponent.cs" />
     <Compile Include="Components\OrthoComponent.cs" />
     <Compile Include="Components\KisComponent.cs" />
     <Compile Include="Components\ExtrudeDynamicComponent.cs" />
@@ -85,6 +88,8 @@
     <Compile Include="Components\StiffnessMethodComponent.cs" />
     <Compile Include="Components\TopOptComponent.cs" />
     <Compile Include="Components\WriteRobotSTRComponent.cs" />
+    <Compile Include="MolecularGoo.cs" />
+    <Compile Include="MolecularParam.cs" />
     <Compile Include="MeshGoo.cs" />
     <Compile Include="MeshParam.cs" />
     <Compile Include="TopOpt.cs" />
