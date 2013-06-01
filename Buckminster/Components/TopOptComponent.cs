@@ -74,7 +74,6 @@ namespace Buckminster.Components
             List<Vector3d> forces = new List<Vector3d>();
             bool reset = true;
 
-            //if (!DA.GetData(0, ref mesh)) return;
             if (!DA.GetData(0, ref molecular)) return;
             if (!DA.GetDataList<Vector3d>(1, fixities)) return;
             if (!DA.GetDataList<Vector3d>(2, forces)) return;
@@ -111,17 +110,16 @@ namespace Buckminster.Components
             if (TopOpt.SolveProblem(out result))
             {
                 if (m_mode == Mode.MemberAdding) TopOpt.AddEdges(0.1, 0);
-                else TopOpt.MembersAdded = 0; // reset no. members added to avoid confusion
+                else TopOpt.MembersAdded = 0; // Reset no. members added to avoid confusion
 
-                //TopOpt.RemoveUnstressed(1E-6);
-                // Don't remove unstressed bars, just don't show them! (See below.)
+                if (TopOpt.MembersAdded == 0) StopTimer(); // Disable timer if solution converges
 
                 m_output.Add(string.Format("{0,3:D}: vol.: {1,9:F6} add. :{2,4:D}", m_output.Count, TopOpt.Volume, TopOpt.MembersAdded));
 
                 // set outputs
                 DA.SetDataList(0, m_output);
                 DA.SetData(1, TopOpt.Volume);
-                var subset = m_world.listEdges.Where(e => e.Radius > 1E-6);
+                var subset = m_world.listEdges.Where(e => e.Radius > 1E-6); // Filter out unstressed bars
                 DA.SetDataList(2, subset.Select(e => new Line(e.StartVertex.Coord, e.EndVertex.Coord)));
                 DA.SetDataList(3, subset.Select(e => e.Radius));
                 DA.SetDataList(4, subset.Select(e => e.Colour));
@@ -169,6 +167,8 @@ namespace Buckminster.Components
 
         public override void DrawViewportWires(IGH_PreviewArgs args)
         {
+            if (Hidden) return;
+            if (Locked) return;
             if (m_world == null) return;
             foreach (var edge in m_world.listEdges)
             {
@@ -225,6 +225,30 @@ namespace Buckminster.Components
                     this.Message = "Member-Adding";
                     break;
             }
+        }
+
+        private bool StopTimer()
+        {
+            // http://www.grasshopper3d.com/forum/topics/how-to-stop-the-timer-component-in-the-vb-script
+            // We need to disable the timer that is associated with this component.
+            // First, find the document that contains this component
+            GH_Document ghdoc = OnPingDocument();
+            if (ghdoc == null) return false;
+            // Then, iterate over all objects in the document to find all timers.
+            foreach (IGH_DocumentObject docobj in ghdoc.Objects)
+            {
+                // Try to cast the object to a GH_Timer
+                Grasshopper.Kernel.Special.GH_Timer timer = docobj as Grasshopper.Kernel.Special.GH_Timer;
+                if (timer == null) continue;
+                // If the cast was successful, then see if this component is part of the timer target list.
+                if (timer.Targets.Contains(InstanceGuid))
+                {
+                    // If it is, lock the timer.
+                    timer.Locked = true;
+                    return timer.Locked;
+                }
+            }
+            return false; // Didn't find a timer attached to this component...
         }
     }
 }
