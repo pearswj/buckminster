@@ -145,11 +145,19 @@ namespace Buckminster.Types
                 vertexPoints.Add(f.Centroid);
 
             // Create sublist of non-boundary vertices
-            var subset = new Dictionary<string, Vertex>(Vertices.Count);
+            var naked = new Dictionary<string, bool>(Vertices.Count); // vertices (name, boundary?)
+            var hlookup = new Dictionary<string, int>(Halfedges.Count); // boundary halfedges (name, index of point in new mesh)
             foreach (var he in Halfedges)
             {
-		        if (he.Pair != null && !subset.ContainsKey(he.Vertex.Name))
-                    subset.Add(he.Vertex.Name, he.Vertex);
+                if (!naked.ContainsKey(he.Vertex.Name)) // if not in dict, add (boundary == true)
+                    naked.Add(he.Vertex.Name, he.Pair == null);
+                else if (he.Pair == null) // if in dict and belongs to boundary halfedge, set true
+                    naked[he.Vertex.Name] = true;
+                if (he.Pair == null)
+                { // if boundary halfedge, add mid-point to vertices and add to lookup
+                    hlookup.Add(he.Name, vertexPoints.Count);
+                    vertexPoints.Add(he.Midpoint);
+                }
             }
 
             // List new faces by their vertex indices
@@ -158,12 +166,23 @@ namespace Buckminster.Types
             for (int i = 0; i < Faces.Count; i++)
                 flookup.Add(Faces[i].Name, i);
 
-            var faceIndices = new List<List<int>>(subset.Count);
-            foreach (var v in subset.Values)
+            var faceIndices = new List<List<int>>(Vertices.Count);
+            foreach (var v in Vertices)
             {
                 List<int> fIndex = new List<int>();
                 foreach (Face f in v.GetVertexFaces())
                     fIndex.Add(flookup[f.Name]);
+                if (naked[v.Name]) // Handle boundary vertices...
+                {
+                    var h = v.Halfedges;
+                    if (h.Count > 0)
+                    { // Add points on naked edges and the naked vertex
+                        fIndex.Add(hlookup[h.Last().Name]);
+                        fIndex.Add(vertexPoints.Count);
+                        fIndex.Add(hlookup[h.First().Next.Name]);
+                        vertexPoints.Add(v.Position);
+                    }
+                }
                 faceIndices.Add(fIndex);
             }
 
@@ -200,10 +219,14 @@ namespace Buckminster.Types
             foreach (var vertex in Vertices)
             {
                 var he = vertex.Halfedges;
-                if (he.Count == 0) continue; // no halfedges
-                if (he[0].Next.Pair == null) continue; // boundary vertex
-                    //he.Add(he[0].Next);
-                faceIndices.Add(he.Select(edge => hlookup[edge.Name]));
+                if (he.Count == 0) continue; // no halfedges (naked vertex, ignore)
+                var list = he.Select(edge => hlookup[edge.Name]); // halfedge indices for vertex-loop
+                if (he[0].Next.Pair == null)
+                { // Handle boundary vertex, add itself and missing boundary halfedge
+                    list = list.Concat(new int[] { vertexPoints.Count, hlookup[he[0].Next.Name] });
+                    vertexPoints.Add(vertex.Position);
+                }
+                faceIndices.Add(list);
             }
 
             return new Mesh(vertexPoints, faceIndices);
