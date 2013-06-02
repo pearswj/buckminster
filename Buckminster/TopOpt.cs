@@ -25,6 +25,7 @@ namespace Buckminster
     public class TopOpt
     {
         static World theWorld = null;
+        static int[,] PCL = null;
         static double limit_tension = 1.0;
         static double limit_compression = 1.0;
         static double joint_cost = 0.0;
@@ -47,10 +48,11 @@ namespace Buckminster
         public static int MembersRemoved;
 
         /// <summary>
-        /// Make demo cantilever for TopOpt test
+        /// Set up the problem. (aWorld is not copied.)
         /// </summary>
-        public static bool SetWorld(World aWorld, double limit_t, double limit_c, double j_cost)
+        public static bool SetProblem(World aWorld, double limit_t, double limit_c, double j_cost)
         {
+            RunTime = 0; // Reset the clock
             limit_tension = limit_t;
             limit_compression = limit_c;
             joint_cost = j_cost;
@@ -58,6 +60,24 @@ namespace Buckminster
             bool was_null = (theWorld == null);
             theWorld = aWorld;
             return was_null;
+        }
+
+        public static bool SetProblem(World aWorld, World pcl, double limit_t, double limit_c, double j_cost)
+        {
+            bool retval = SetProblem(aWorld, limit_t, limit_c, j_cost);
+
+            if (pcl == null) PCL = null;
+            else // Use pcl structure to populate PCL (we have to assume that they are similar!)
+            {
+                PCL = new int[pcl.listEdges.Count, 2];
+                for (int i = 0; i < pcl.listEdges.Count; i++)
+                {
+                    PCL[i, 0] = pcl.listEdges[i].StartVertex.Index;
+                    PCL[i, 1] = pcl.listEdges[i].EndVertex.Index;
+                }
+            }
+
+            return retval;
         }
 
         /// <summary>
@@ -246,45 +266,59 @@ namespace Buckminster
             double length, violation;
             int index;
 
-            //  Use virtual displacements Length(EndVertex.Velocity-StartVertex.Velocity) to calc potential strain in each possible member and add in 10% most strained ones
-            for (int start = 0; start < theWorld.listVertexes.Count; start++)
+            if (PCL == null) // Create fully-connected potential connections list
             {
-                for (int end = start + 1; end < theWorld.listVertexes.Count; end++)
+                int n = theWorld.listVertexes.Count;
+                PCL = new int[n * (n - 1) / 2, 2];
+                for (int start = 0, count = 0; start < n; start++)
                 {
-                    sVertex = theWorld.listVertexes[start];
-                    eVertex = theWorld.listVertexes[end];
-
-                    //  Calculate violation
-                    aDeltaVector = eVertex.Coord - sVertex.Coord;
-                    length = aDeltaVector.Length;
-                    violation = ((eVertex.Velocity - sVertex.Velocity) * aDeltaVector)/(length + joint_cost);
-                    violation /= length;
-                    violation = Math.Max(violation * limit_tension, -violation * limit_compression);
-
-                    aEdge = theWorld.FindEdge(sVertex, eVertex); //, Test_Duplicates.All, null);
-                    if (aEdge == null)
+                    for (int end = start + 1; end < n; end++, count++)
                     {
-                        //  Edge doesn't already exist
-                        if (violation >= 1.001)
-                        {
-                            for (index = 0; index < listViolationAdd.Count; index++)
-                            {
-                                if (listViolationAdd[index] < violation) break;
-                            }
-                            listStartIndex.Insert(index, start);
-                            listEndIndex.Insert(index, end);
-                            listViolationAdd.Insert(index, violation);
-                        }
+                        PCL[count, 0] = start;
+                        PCL[count, 1] = end;
                     }
-                    else
+                }
+            }
+
+            //  Use virtual displacements Length(EndVertex.Velocity-StartVertex.Velocity) to calc potential strain in each possible member and add in 10% most strained ones
+            for (int i = 0; i < PCL.GetLength(0); i++)
+            {
+                int start = PCL[i, 0];
+                int end = PCL[i, 1];
+
+                sVertex = theWorld.listVertexes[start];
+                eVertex = theWorld.listVertexes[end];
+
+                //  Calculate violation
+                aDeltaVector = eVertex.Coord - sVertex.Coord;
+                length = aDeltaVector.Length;
+                violation = ((eVertex.Velocity - sVertex.Velocity) * aDeltaVector) / (length + joint_cost);
+                violation /= length;
+                violation = Math.Max(violation * limit_tension, -violation * limit_compression);
+
+                aEdge = theWorld.FindEdge(sVertex, eVertex); //, Test_Duplicates.All, null);
+                if (aEdge == null)
+                {
+                    //  Edge doesn't already exist
+                    if (violation >= 1.001)
                     {
-                        for (index = 0; index < listViolationRemove.Count; index++)
+                        for (index = 0; index < listViolationAdd.Count; index++)
                         {
-                            if (listViolationRemove[index] < violation) break;
+                            if (listViolationAdd[index] < violation) break;
                         }
-                        listEdgesToRemove.Insert(index, aEdge);
-                        listViolationRemove.Insert(index, violation);
+                        listStartIndex.Insert(index, start);
+                        listEndIndex.Insert(index, end);
+                        listViolationAdd.Insert(index, violation);
                     }
+                }
+                else
+                {
+                    for (index = 0; index < listViolationRemove.Count; index++)
+                    {
+                        if (listViolationRemove[index] < violation) break;
+                    }
+                    listEdgesToRemove.Insert(index, aEdge);
+                    listViolationRemove.Insert(index, violation);
                 }
             }
             //  Remove Existing

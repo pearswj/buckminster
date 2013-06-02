@@ -42,8 +42,13 @@ namespace Buckminster.Components
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddParameter(new MolecularParam(), "Molecular", "Molecular", "Input structure. (Accepts a Rhino mesh, a PolyMesh or a native Molecular data type.)", GH_ParamAccess.item);
+            pManager.AddParameter(new MolecularParam(), "Potentials", "PCL", "Potential connections list for member-additive ", GH_ParamAccess.item);
+            pManager[1].Optional = true;
             pManager.AddVectorParameter("Fixities", "Fixities", "Nodal support conditions, represented as a vector (0: fixed, 1: free)", GH_ParamAccess.list);
             pManager.AddVectorParameter("Forces", "Forces", "Nodal load conditions, represented as a vector", GH_ParamAccess.list);
+            pManager.AddNumberParameter("Tensile", "-Limit", "Tensile capacity", GH_ParamAccess.item, 1.0);
+            pManager.AddNumberParameter("Compressive", "+Limit", "Compressive capacity", GH_ParamAccess.item, 1.0);
+            pManager.AddNumberParameter("Joint cost", "Joint", "Joint cost", GH_ParamAccess.item, 0.0);
             pManager.AddBooleanParameter("Reset", "Reset", "Reset", GH_ParamAccess.item, true);
         }
 
@@ -70,14 +75,21 @@ namespace Buckminster.Components
 
             // Collect inputs
             Molecular molecular = null;
+            Molecular pcl = null;
             List<Vector3d> fixities = new List<Vector3d>();
             List<Vector3d> forces = new List<Vector3d>();
+            double limitT, limitC, jCost;
+            limitT = limitC = jCost = double.NaN;
             bool reset = true;
 
             if (!DA.GetData(0, ref molecular)) return;
-            if (!DA.GetDataList<Vector3d>(1, fixities)) return;
-            if (!DA.GetDataList<Vector3d>(2, forces)) return;
-            if (!DA.GetData<bool>(3, ref reset)) return;
+            DA.GetData(1, ref pcl); // Optional
+            if (!DA.GetDataList<Vector3d>(2, fixities)) return;
+            if (!DA.GetDataList<Vector3d>(3, forces)) return;
+            if (!DA.GetData<double>(4, ref limitT)) return;
+            if (!DA.GetData<double>(5, ref limitC)) return;
+            if (!DA.GetData<double>(6, ref jCost)) return;
+            if (!DA.GetData<bool>(7, ref reset)) return;
 
             if (reset) // Rebuild model from external source
             {
@@ -100,7 +112,7 @@ namespace Buckminster.Components
                             m_world.NewEdge(m_world.listVertexes[i], m_world.listVertexes[j]);
                 }
 
-                TopOpt.SetWorld(m_world, 1, 1, 0); // set up TopOpt parameters
+                TopOpt.SetProblem(m_world, pcl, limitT, limitC, jCost); // set up TopOpt parameters
 
                 if (m_output.Count > 0) m_output.Clear();
             }
@@ -114,7 +126,7 @@ namespace Buckminster.Components
 
                 if (TopOpt.MembersAdded == 0) StopTimer(); // Disable timer if solution converges
 
-                m_output.Add(string.Format("{0,3:D}: vol.: {1,9:F6} add. :{2,4:D}", m_output.Count, TopOpt.Volume, TopOpt.MembersAdded));
+                m_output.Add(string.Format("{0,3:D}: vol.: {1,9:F6} add. :{2,4:D} ({3,2:F3}s)", m_output.Count, TopOpt.Volume, TopOpt.MembersAdded, TopOpt.RunTime));
 
                 // set outputs
                 DA.SetDataList(0, m_output);
@@ -176,7 +188,7 @@ namespace Buckminster.Components
                 {
                     System.Drawing.Color colour = this.Attributes.Selected ? args.WireColour_Selected : edge.Colour;
                     var thickness = (int)Math.Floor(edge.Radius * 1000);
-                    if (thickness < args.DefaultCurveThickness) thickness = args.DefaultCurveThickness;
+                    if (thickness < 1) thickness = 1; // Ensure stressed elements are visible (1px minimum)
                     args.Display.DrawLine(edge.StartVertex.Coord, edge.EndVertex.Coord, colour, thickness);
                 }
             }

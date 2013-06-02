@@ -92,7 +92,7 @@ namespace Buckminster.Tests
         [Test]
         public void CanSetProblem()
         {
-            Assert.IsTrue(TopOpt.SetWorld(theWorld, 1, 1, 0));
+            Assert.IsTrue(TopOpt.SetProblem(theWorld, 1, 1, 0));
         }
 
         [Test]
