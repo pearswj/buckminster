@@ -23,6 +23,7 @@ namespace Buckminster.Components
         private Mode m_mode;
         private Molecular m_world;
         private List<string> m_output;
+        private bool m_mosek;
 
         /// <summary>
         /// Initializes a new instance of the TopOptComponent class.
@@ -66,13 +67,20 @@ namespace Buckminster.Components
         }
 
         /// <summary>
+        /// Called before SolveInstance. (Equivalent to DA.Iteration == 0.)
+        /// </summary>
+        protected override void BeforeSolveInstance()
+        {
+            base.BeforeSolveInstance();
+            this.ValuesChanged();
+        }
+
+        /// <summary>
         /// This is the method that actually does the work.
         /// </summary>
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            if (DA.Iteration == 0) this.ValuesChanged();
-
             // Collect inputs
             Molecular molecular = null;
             Molecular pcl = null;
@@ -118,8 +126,13 @@ namespace Buckminster.Components
             }
             
             // solve
-            int result;
-            if (TopOpt.SolveProblem(out result))
+            string msg;
+            bool success;
+            if (m_mosek)
+                success = TopOpt.SolveProblemMosek(out msg);
+            else
+                success = TopOpt.SolveProblemGoogle(out msg);
+            if (success)
             {
                 if (m_mode == Mode.MemberAdding) TopOpt.AddEdges(0.1, 0);
                 else TopOpt.MembersAdded = 0; // Reset no. members added to avoid confusion
@@ -138,22 +151,7 @@ namespace Buckminster.Components
                 DA.SetDataList(5, m_world.listVertexes.Select(v => v.Velocity));
             }
             else
-            {
-                if (result == Solver.INFEASIBLE)
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Infeasible problem definition");
-                else
-                {
-                    if (result == Solver.UNBOUNDED)
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unbounded Problem Definition");
-                    else
-                    {
-                        if (result == Solver.FEASIBLE)
-                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Feasible Problem Stopped by Limit");
-                        else
-                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Abnormal Problem - Some Kind of Error");
-                    }
-                }
-            }
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
         }
 
         /// <summary>
@@ -201,6 +199,9 @@ namespace Buckminster.Components
             ToolStripMenuItem toolStripMenuItem2 = Menu_AppendItem(menu, "Member-Adding", new EventHandler(this.Menu_MemberAddingClicked), true, m_mode == Mode.MemberAdding);
             toolStripMenuItem1.ToolTipText = "Discard mesh-edges and use a fully-connected ground-structure (slow).";
             toolStripMenuItem2.ToolTipText = "Use the member-adding algorithm (fast).";
+            Menu_AppendSeparator(menu);
+            ToolStripMenuItem toolStripMenuItem3 = Menu_AppendItem(menu, "Mosek", new EventHandler(this.Menu_MosekClicked), true, m_mosek);
+            toolStripMenuItem3.ToolTipText = "Use the Mosek solver (if you have it installed).";
         }
 
         private void Menu_FullyConnectedClicked(Object sender, EventArgs e)
@@ -220,6 +221,13 @@ namespace Buckminster.Components
                 m_mode = Mode.None;
             else
                 m_mode = Mode.MemberAdding;
+            ExpireSolution(true);
+        }
+
+        private void Menu_MosekClicked(Object sender, EventArgs e)
+        {
+            RecordUndoEvent("Mosek");
+            m_mosek = m_mosek ? false : true;
             ExpireSolution(true);
         }
 

@@ -14,11 +14,17 @@
     <FileAlignment>512</FileAlignment>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <TargetFrameworkProfile />
+    <NoWin32Manifest>False</NoWin32Manifest>
+    <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+    <NoStdLib>False</NoStdLib>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug64|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
+    <DebugType>Full</DebugType>
+    <Optimize>False</Optimize>
     <OutputPath>bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
@@ -30,14 +36,19 @@
     <OutputPath>bin\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Google.OrTools.LinearSolver">
       <HintPath>..\lib\Google.OrTools.LinearSolver.dll</HintPath>
     </Reference>
+    <Reference Include="Grasshopper">
+      <HintPath>..\..\..\..\..\AppData\Roaming\McNeel\Rhinoceros\5.0\Plug-ins\Grasshopper {B45A29B1-4343-4035-989E-044E8580D9CF}\0.9.56.0\Grasshopper.dll</HintPath>
+    </Reference>
     <Reference Include="MathNet.Numerics">
       <HintPath>..\packages\MathNet.Numerics.2.5.0\lib\net40\MathNet.Numerics.dll</HintPath>
+    </Reference>
+    <Reference Include="mosekdotnet">
+      <HintPath>..\..\..\..\..\..\..\Program Files\Mosek\7\tools\platform\win64x86\bin\mosekdotnet.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -49,11 +60,6 @@
       <HintPath>C:\Program Files\Rhinoceros 5.0 Evaluation (64-bit)\System\RhinoCommon.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Grasshopper">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files (x86)\Grasshopper for Rhino 5\Grasshopper.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="GH_IO">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>C:\Program Files (x86)\Grasshopper for Rhino 5\GH_IO.dll</HintPath>
@@ -63,6 +69,7 @@
   <ItemGroup>
     <Compile Include="Analysis.cs" />
     <Compile Include="Components\AmboComponent.cs" />
+    <Compile Include="Components\MeshPassthruComponent.cs" />
     <Compile Include="Components\GridProximityComponent.cs" />
     <Compile Include="Components\JoinComponent.cs" />
     <Compile Include="Components\ExpandComponent.cs" />
@@ -167,6 +174,16 @@
     <StartArguments>
     </StartArguments>
     <StartAction>Program</StartAction>
-    <DocumentationFile>bin\Buckminster.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug64' ">
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+    <BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Platform)' == 'AnyCPU' ">
+    <BaseAddress>4194304</BaseAddress>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>False</Prefer32Bit>
+    <RegisterForComInterop>False</RegisterForComInterop>
+    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
   </PropertyGroup>
 </Project>

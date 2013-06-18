@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 using World = Buckminster.Types.Molecular;
 using Vertex = Buckminster.Types.Molecular.Node;
@@ -8,6 +9,7 @@ using Edge = Buckminster.Types.Molecular.Bar;
 using Color = System.Drawing.Color;
 
 using Google.OrTools.LinearSolver;  // Van Omme, N., Perron, L. and Furnon, V., "or-tools user’s manual", Google, 2013.
+//using mosek;
 
 #if (!TEST)
 using Rhino.Geometry;
@@ -84,31 +86,31 @@ namespace Buckminster
         /// Linear Programming Solver of Ax=B
         /// </summary>
         /// <returns>True if optimal solution found.</returns>
-        static public bool SolveProblem()
+        static public bool SolveProblemGoogle()
         {
-            int rtn; // trash this
-            return SolveProblem(out rtn);
+            string msg; // trash this
+            return SolveProblemGoogle(out msg);
         }
 
         /// <summary>
         /// Linear Programming Solver of Ax=B 
         /// </summary>
-        /// <param name="returnCode">Gives access to the specific return code of the solver.</param>
+        /// <param name="message">Gives details about the state of the solver.</param>
         /// <returns>True if optimal solution found.</returns>
-        static public bool SolveProblem(out int returnCode)
+        static public bool SolveProblemGoogle(out string message)
         {
             Solver theSolver = new Solver("TopOpt Test", Google.OrTools.LinearSolver.Solver.CLP_LINEAR_PROGRAMMING);
-            List<Variable> listCompressions = new List<Variable>(theWorld.listEdges.Count);
-            List<Variable> listTensions = new List<Variable>(theWorld.listEdges.Count);
-            List<Google.OrTools.LinearSolver.Constraint> listXConstraints = new List<Google.OrTools.LinearSolver.Constraint>(theWorld.listVertexes.Count);
-            List<Google.OrTools.LinearSolver.Constraint> listYConstraints = new List<Google.OrTools.LinearSolver.Constraint>(theWorld.listVertexes.Count);
-            List<Google.OrTools.LinearSolver.Constraint> listZConstraints = new List<Google.OrTools.LinearSolver.Constraint>(theWorld.listVertexes.Count);
+            var listCompressions = new List<Variable>(theWorld.listEdges.Count);
+            var listTensions     = new List<Variable>(theWorld.listEdges.Count);
+            var listXConstraints = new List<Constraint>(theWorld.listVertexes.Count);
+            var listYConstraints = new List<Constraint>(theWorld.listVertexes.Count);
+            var listZConstraints = new List<Constraint>(theWorld.listVertexes.Count);
             Variable aVariable;
-            Google.OrTools.LinearSolver.Constraint xConstraint = null;
-            Google.OrTools.LinearSolver.Constraint yConstraint = null;
-            Google.OrTools.LinearSolver.Constraint zConstraint = null;
+            Constraint xConstraint = null;
+            Constraint yConstraint = null;
+            Constraint zConstraint = null;
             Vector3d aVector;
-            List<int> listConstraintExists = new List<int>(theWorld.listVertexes.Count);
+            var listConstraintExists = new List<int>(theWorld.listVertexes.Count);
 
             foreach (Edge aEdge in theWorld.listEdges)
             {
@@ -167,7 +169,8 @@ namespace Buckminster
                     foreach (Edge aEdge in aVertex.listEdgesStarting)
                     {
                         aVector = aEdge.StartVertex.Coord-aEdge.EndVertex.Coord;
-                        aVector.Unitize();
+                        //aVector.Unitize();
+                        aVector = aVector / aVector.Length;
                         aVariable = listCompressions[aEdge.Index];
                         if (xConstraint != null) xConstraint.SetCoefficient(aVariable, -aVector.X);
                         if (yConstraint != null) yConstraint.SetCoefficient(aVariable, -aVector.Y);
@@ -180,7 +183,8 @@ namespace Buckminster
                     foreach (Edge aEdge in aVertex.listEdgesEnding)
                     {
                         aVector = aEdge.EndVertex.Coord-aEdge.StartVertex.Coord;
-                        aVector.Unitize();
+                        //aVector.Unitize();
+                        aVector = aVector / aVector.Length;
                         aVariable = listCompressions[aEdge.Index];
                         if (xConstraint != null) xConstraint.SetCoefficient(aVariable, -aVector.X);
                         if (yConstraint != null) yConstraint.SetCoefficient(aVariable, -aVector.Y);
@@ -200,36 +204,30 @@ namespace Buckminster
             int result = theSolver.Solve();
             if (result == Solver.OPTIMAL)
             {
+                // Get volume
                 Volume = theSolver.ObjectiveValue();
                 RunTime += 0.001*theSolver.WallTime();
                 //System.Windows.Forms.MessageBox.Show(String.Format("Solved in {0} milliseconds", theSolver.WallTime()));
                 //System.Diagnostics.Debug.WriteLine(String.Format("Solved in {0:0.000} seconds", 0.001*theSolver.WallTime()));
-                //System.Diagnostics.Debug.WriteLine(String.Format("Total Volume = {0:F6}", Volume));
+                System.Diagnostics.Debug.WriteLine(String.Format("Total Volume = {0:F6}", Volume));
 
+                // Get bar stresses
                 double stress;
                 foreach (Edge aEdge in theWorld.listEdges)
                 {
                     stress = listTensions[aEdge.Index].SolutionValue();
                     if (Math.Abs(stress)<0.0000001) stress = -listCompressions[aEdge.Index].SolutionValue();
-                    if (Math.Abs(stress) < 0.0000001)
-                    {
+                    if (Math.Abs(stress) < 0.0000001) // Unstressed
                         aEdge.Colour = Color.FromArgb(100, Color.DarkGray);
-                    }
-                    else
-                    {
-                        if (stress < 0.0)
-                        {
-                            aEdge.Colour = Color.FromArgb(100, Color.Red);
-                        }
-                        else
-                        {
-                            aEdge.Colour = Color.FromArgb(100, Color.Blue);
-                        }
-                    }
+                    else if (stress < 0.0) // Compression
+                        aEdge.Colour = Color.FromArgb(100, Color.Red);
+                    else // Tension
+                        aEdge.Colour = Color.FromArgb(100, Color.Blue);
                     aEdge.Radius = Math.Abs(stress) * 0.01;  //  Store Stress in Edge Radius
                     //System.Diagnostics.Debug.WriteLine(String.Format("Stress in Edge {0:D4} = {1:F6}", aEdge.Number, aEdge.Radius));
                 }
 
+                // Get dual displacements
                 double x_dual, y_dual, z_dual;
                 int x_index, y_index, z_index;
                 x_index = y_index = z_index = 0;
@@ -242,12 +240,19 @@ namespace Buckminster
                     aVertex.Velocity = new Vector3d(x_dual, y_dual, z_dual);  //  Store Virtual Displacements in Vertex Velocity
                     System.Diagnostics.Debug.WriteLine(String.Format("Dual Displacement in Vertex#{0} = ({1:F6},{2:F6},{3:F6})", aVertex.Number, aVertex.Velocity.X, aVertex.Velocity.Y, aVertex.Velocity.Z));
                 }
-                //World.Make_VelocityArrowsArray = true;
+                message = "Optimal solution found";
+                return true;
             }
+            else if (result == Solver.INFEASIBLE)
+                message = "Infeasible problem definition";
+            else if (result == Solver.UNBOUNDED)
+                message = "Unbounded Problem Definition";
+            else if (result == Solver.FEASIBLE)
+                message = "Feasible Problem Stopped by Limit";
+            else
+                message = "Abnormal Problem - Some Kind of Error";
 
-            returnCode = result; // return code
-
-            return (result == Solver.OPTIMAL);
+            return false;
         }
 
         /// <summary>
@@ -348,6 +353,224 @@ namespace Buckminster
                 if (Math.Abs(aEdge.Radius)<tolerance) listEs.Add(aEdge);
             }
             theWorld.DeleteElements(listEs);
+        }
+
+        /// <summary>
+        /// Linear Programming Solver of Ax=B (Mosek).
+        /// </summary>
+        /// <returns>True if optimal solution found.</returns>
+        static public bool SolveProblemMosek()
+        {
+            string msg;
+            return SolveProblemMosek(out msg);
+        }
+
+        /// <summary>
+        /// Linear Programming Solver of Ax=B (Mosek).
+        /// </summary>
+        /// <param name="message">Gives details about the state of the solver.</param>
+        /// <returns>True if optimal solution found.</returns>
+        static public bool SolveProblemMosek(out string message)
+        {
+            int numcon = 0; // We'll add up the DOFs as we go...
+            int numvar = theWorld.listEdges.Count * 2; // Tension & compression
+
+            // Coefficients
+            var c = new double[numvar];
+            for (int i = 0; i < theWorld.listEdges.Count; i++)
+            {
+                var aEdge = theWorld.listEdges[i];
+                c[i] = 2 * joint_cost + aEdge.Length / limit_tension;
+                c[i + theWorld.listEdges.Count] = 2 * joint_cost + aEdge.Length / limit_compression;
+            }
+
+            // Create sparse matrix and initialise
+            var asub = new List<int>[numvar];
+            var aval = new List<double>[numvar];
+            for (int i = 0; i < numvar; i++)
+            {
+                asub[i] = new List<int>();
+                aval[i] = new List<double>();
+            }
+
+            // create list of forces (a.k.a. boundary constraints)
+            var bc = new List<double>();
+
+            for (int i = 0; i < theWorld.listVertexes.Count; i++) // iterate through vertices
+            {
+                var aVertex = theWorld.listVertexes[i];
+
+                // Degrees of freedom for vertex #i
+                aVertex.Fixity = aVertex.Fixity ?? theWorld.NewConstraint(false, false, false); // Just incase its empty...
+                if (aVertex.Fixity.X && aVertex.Fixity.Y && aVertex.Fixity.Z) continue; // ignore completely
+                if (!aVertex.Fixity.X) bc.Add(aVertex.Force.X);
+                if (!aVertex.Fixity.Y) bc.Add(aVertex.Force.Y);
+                if (!aVertex.Fixity.Z) bc.Add(aVertex.Force.Z);
+
+                var aFixityArray = new bool[] { aVertex.Fixity.X, aVertex.Fixity.Y, aVertex.Fixity.Z };
+                //var dofs = aFixityArray.Select(fix => fix ? 0 : 1).Sum();
+
+                foreach (var aEdge in aVertex.listEdgesStarting)
+                {
+                    int j = aEdge.Index;
+                    var aVector = aEdge.StartVertex.Coord - aEdge.EndVertex.Coord;
+                    aVector = aVector / aVector.Length; // Unitize() won't work in unit tests
+                    var aComponent = new double[] { aVector.X, aVector.Y, aVector.Z };
+                    //int dof = bc.Count - dofs;
+                    int dof = numcon;
+                    for (int k = 0; k < 3; k++)
+                    {
+                        if (aFixityArray[k]) continue;
+                        asub[j].Add(dof);
+                        aval[j].Add(-aComponent[k]);
+                        asub[j + theWorld.listEdges.Count].Add(dof);
+                        aval[j + theWorld.listEdges.Count].Add(aComponent[k]);
+                        dof++;
+                    }
+                }
+                foreach (var aEdge in aVertex.listEdgesEnding)
+                {
+                    int j = aEdge.Index;
+                    var aVector = aEdge.EndVertex.Coord - aEdge.StartVertex.Coord;
+                    aVector = aVector / aVector.Length; // Unitize() won't work in unit tests
+                    var aComponent = new double[] { aVector.X, aVector.Y, aVector.Z };
+                    //int dof = bc.Count - dofs;
+                    int dof = numcon;
+                    for (int k = 0; k < 3; k++)
+                    {
+                        if (aFixityArray[k]) continue;
+                        asub[j].Add(dof);
+                        aval[j].Add(-aComponent[k]);
+                        asub[j + theWorld.listEdges.Count].Add(dof);
+                        aval[j + theWorld.listEdges.Count].Add(aComponent[k]);
+                        dof++;
+                    }
+                }
+                numcon = bc.Count;
+            }
+
+            //int numcon = bc.Count;
+
+
+            // Make mosek environment.
+            using (mosek.Env env = new mosek.Env())
+            {
+                // Create a task object.
+                using (mosek.Task task = new mosek.Task(env, 0, 0))
+                {
+                    // Directs the log task stream to the user specified
+                    // method msgclass.streamCB
+                    //task.set_Stream(mosek.streamtype.log, new msgclass(""));
+
+                    // Append 'numcon' empty constraints.
+                    // The constraints will initially have no bounds.
+                    task.appendcons(numcon);
+
+                    // Append 'numvar' variables.
+                    // The variables will initially be fixed at zero (x=0).
+                    task.appendvars(numvar);
+
+                    for (int j = 0; j < numvar; ++j)
+                    {
+                        // Set the linear term c_j in the objective.
+                        task.putcj(j, c[j]);
+
+                        // Set the bounds on variable j.
+                        // blx[j] <= x_j <= bux[j]
+                        //task.putvarbound(j, bkx[j], blx[j], bux[j]);
+                        task.putvarbound(j, mosek.boundkey.lo, 0, 0);
+
+                        // Input column j of A   
+                        task.putacol(j,                     /* Variable (column) index.*/
+                                     asub[j].ToArray(),               /* Row index of non-zeros in column j.*/
+                                     aval[j].ToArray());              /* Non-zero Values of column j. */
+                    }
+
+                    // Set the bounds on constraints.
+                    // blc[i] <= constraint_i <= buc[i]
+                    for (int i = 0; i < numcon; ++i)
+                        //task.putconbound(i, bkc[i], blc[i], buc[i]);
+                        task.putconbound(i, mosek.boundkey.fx, bc[i], bc[i]);
+
+                    System.Diagnostics.Debug.WriteLine("Number of Variables {0} : Number of Constraints {1}", task.getnumvar(), task.getnumcon());
+
+                    // Input the objective sense (minimize/maximize)
+                    task.putobjsense(mosek.objsense.minimize);
+
+                    var stopwatch = new System.Diagnostics.Stopwatch();
+                    stopwatch.Start();
+
+                    // Solve the problem
+                    task.optimize();
+
+                    stopwatch.Stop();
+                    RunTime += stopwatch.Elapsed.TotalSeconds; // Add to total running time
+
+                    // Print a summary containing information
+                    // about the solution for debugging purposes
+                    task.solutionsummary(mosek.streamtype.msg);
+
+                    // Get status information about the solution        
+                    mosek.solsta solsta;
+
+                    task.getsolsta(mosek.soltype.itr, out solsta);
+
+                    switch (solsta)
+                    {
+                        case mosek.solsta.optimal:
+                        case mosek.solsta.near_optimal:
+                            // Get Volume
+                            Volume = task.getprimalobj(mosek.soltype.bas);
+                            System.Diagnostics.Debug.WriteLine(String.Format("Total Volume = {0:F6}", Volume));
+
+                            // Get bar stresses
+                            double[] xx = new double[numvar];
+                            task.getxx(mosek.soltype.bas, xx);
+                            foreach (var aEdge in theWorld.listEdges)
+                            { // Get bar stress and store as colour and radius
+                                var stress = Math.Abs(xx[aEdge.Index]) < 1E-6 ? -xx[aEdge.Index + theWorld.listEdges.Count] : xx[aEdge.Index];
+                                if (Math.Abs(stress) < 1E-6) // Unstressed
+                                    aEdge.Colour = Color.FromArgb(100, Color.DarkGray);
+                                else if (stress < 0.0) // Compression
+                                    aEdge.Colour = Color.FromArgb(100, Color.Blue);
+                                else // Tension
+                                    aEdge.Colour = Color.FromArgb(100, Color.Red);
+                                aEdge.Radius = Math.Abs(stress) * 0.01;  //  Store Stress in Edge Radius
+                                //System.Diagnostics.Debug.WriteLine(String.Format("Stress in Edge {0:D4} = {1:F6}", aEdge.Number, aEdge.Radius));
+                            }
+
+                            // Get dual displacements
+                            double[] y = new double[numcon];
+                            task.gety(mosek.soltype.bas, y);
+                            double x_dual, y_dual, z_dual;
+                            int dof = 0;
+                            foreach (var aVertex in theWorld.listVertexes)
+                            {
+                                x_dual = !aVertex.Fixity.X ? y[dof++] : 0.0;
+                                y_dual = !aVertex.Fixity.Y ? y[dof++] : 0.0;
+                                z_dual = !aVertex.Fixity.Z ? y[dof++] : 0.0;
+                                aVertex.Velocity = new Vector3d(x_dual, y_dual, z_dual);  //  Store Virtual Displacements in Vertex Velocity
+                                System.Diagnostics.Debug.WriteLine(String.Format("Dual Displacement in Vertex#{0} = ({1:F6},{2:F6},{3:F6})", aVertex.Number, aVertex.Velocity.X, aVertex.Velocity.Y, aVertex.Velocity.Z));
+                            }
+
+                            message = "Optimal primal solution";
+                            return true;
+                        case mosek.solsta.dual_infeas_cer:
+                        case mosek.solsta.prim_infeas_cer:
+                        case mosek.solsta.near_dual_infeas_cer:
+                        case mosek.solsta.near_prim_infeas_cer:
+                            message = "Primal or dual infeasibility certificate found.";
+                            break;
+                        case mosek.solsta.unknown:
+                            message = "Unknown solution status.";
+                            break;
+                        default:
+                            message = "Other solution status";
+                            break;
+                    }
+                }
+            }
+            return false;
         }
     }
 }
