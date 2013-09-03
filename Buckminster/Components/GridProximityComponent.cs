@@ -9,6 +9,8 @@ using Rhino.Geometry;
 using Buckminster.Types;
 using Mesh = Buckminster.Types.Mesh;
 
+using Molecular = SharpSLO.Types.Molecular;
+
 namespace Buckminster.Components
 {
     public class GridProximityComponent : GH_Component
@@ -58,9 +60,9 @@ namespace Buckminster.Components
 
             var molecular = new Molecular(n);
             var points = mesh.Vertices.Select(v => (Point3d)v.Position);
-            foreach (var point in points)
+            foreach (var pt in points)
             {
-                molecular.NewVertex(point);
+                molecular.Add(pt.X, pt.Y, pt.Z);
             }
 
             var node3List = new Node3List(points);
@@ -76,7 +78,7 @@ namespace Buckminster.Components
                 node3Tree.SolveProximity(node3Proximity);
                 foreach (var j in node3Proximity.IndexList)
                 {
-                    molecular.NewEdge(molecular.listVertexes[i], molecular.listVertexes[j]);
+                    molecular.Add(i, j);
                 }
             }
 

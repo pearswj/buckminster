@@ -9,6 +9,7 @@ using Solver = Google.OrTools.LinearSolver.Solver;
 
 using Buckminster.Types;
 using Mesh = Buckminster.Types.Mesh;
+//using Molecular = SharpSLO.Types.Molecular;
 
 namespace Buckminster.Components
 {
@@ -82,8 +83,8 @@ namespace Buckminster.Components
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             // Collect inputs
-            Molecular molecular = null;
-            Molecular pcl = null;
+            SharpSLO.Types.Molecular molecular = null;
+            SharpSLO.Types.Molecular pcl1 = null;
             List<Vector3d> fixities = new List<Vector3d>();
             List<Vector3d> forces = new List<Vector3d>();
             double limitT, limitC, jCost;
@@ -91,7 +92,7 @@ namespace Buckminster.Components
             bool reset = true;
 
             if (!DA.GetData(0, ref molecular)) return;
-            DA.GetData(1, ref pcl); // Optional
+            DA.GetData(1, ref pcl1); // Optional
             if (!DA.GetDataList<Vector3d>(2, fixities)) return;
             if (!DA.GetDataList<Vector3d>(3, forces)) return;
             if (!DA.GetData<double>(4, ref limitT)) return;
@@ -101,7 +102,32 @@ namespace Buckminster.Components
 
             if (reset) // Rebuild model from external source
             {
-                m_world = molecular.Duplicate(); // copy molecular
+                //m_world = molecular.Duplicate(); // copy molecular
+                ///////////////////////////////////////////////////////
+                m_world = new Molecular(molecular.Nodes.Count);
+                foreach (var node in molecular.Nodes)
+                {
+                    m_world.NewVertex(node.X, node.Y, node.Z);
+                }
+                foreach (var bar in molecular.Bars)
+                {
+                    m_world.NewEdge(m_world.listVertexes[bar.Start], m_world.listVertexes[bar.End]);
+                }
+
+                Molecular pcl = null;
+                if (pcl1 != null)
+                {
+                    pcl = new Molecular(pcl1.Nodes.Count);
+                    foreach (var node in pcl1.Nodes)
+                    {
+                        m_world.NewVertex(node.X, node.Y, node.Z);
+                    }
+                    foreach (var bar in pcl1.Bars)
+                    {
+                        m_world.NewEdge(pcl.listVertexes[bar.Start], pcl.listVertexes[bar.End]);
+                    }
+                }
+                ///////////////////////////////////////////////////////
 
                 // Add boundary conditions
                 for (int i = 0; i < m_world.listVertexes.Count; i++)
@@ -185,7 +211,7 @@ namespace Buckminster.Components
                 if (edge.Radius > 1E-6) // don't draw unstressed
                 {
                     System.Drawing.Color colour = this.Attributes.Selected ? args.WireColour_Selected : edge.Colour;
-                    var thickness = (int)Math.Floor(edge.Radius * 1000);
+                    var thickness = (int)Math.Floor(edge.Radius * 5) + 1;
                     if (thickness < 1) thickness = 1; // Ensure stressed elements are visible (1px minimum)
                     args.Display.DrawLine(edge.StartVertex.Coord, edge.EndVertex.Coord, colour, thickness);
                 }

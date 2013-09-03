@@ -9,6 +9,8 @@ using Rhino.Geometry;
 using Buckminster.Types;
 using Mesh = Buckminster.Types.Mesh;
 
+using Molecular = SharpSLO.Types.Molecular;
+
 namespace Buckminster.Components
 {
     public class LaceProximityComponent : GH_Component
@@ -56,20 +58,17 @@ namespace Buckminster.Components
             if (!DA.GetData<Mesh>(1, ref mesh2)) return;
             if (!DA.GetData<double>(2, ref max_distance)) return;
 
-            var molecular = new Molecular(mesh1);
+            var molecular = mesh1.ToMolecular();
             // create molecular structure for second mesh and add into first
-            molecular.Append(new Molecular(mesh2));
-            //var temp = new Molecular(mesh2);
-            //molecular.listVertexes.AddRange(temp.listVertexes);
-            //molecular.listEdges.AddRange(temp.listEdges);
+            molecular.Append(mesh2.ToMolecular());
 
-            var points = molecular.listVertexes.Select(v => v.Coord);
+            var points = molecular.ToPoint3dArray();
 
             var node3List = new Node3List(points);
             Node3Tree node3Tree = node3List.CreateTree(0.0, false, 10);
             if (node3Tree == null) return;
 
-            int max_results = molecular.listVertexes.Count - 1;
+            int max_results = molecular.Nodes.Count - 1;
             double min_distance = 0;
 
             int n = mesh1.Vertices.Count;
@@ -79,7 +78,7 @@ namespace Buckminster.Components
                 node3Tree.SolveProximity(node3Proximity);
                 foreach (var j in node3Proximity.IndexList)
                 {
-                    if (j >= n) molecular.NewEdge(molecular.listVertexes[i], molecular.listVertexes[j]);
+                    if (j >= n) molecular.Add(i, j);
                 }
             }
 

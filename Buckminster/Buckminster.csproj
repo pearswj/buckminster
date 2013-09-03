@@ -50,6 +50,9 @@
     <Reference Include="mosekdotnet">
       <HintPath>..\..\..\..\..\..\..\Program Files\Mosek\7\tools\platform\win64x86\bin\mosekdotnet.dll</HintPath>
     </Reference>
+    <Reference Include="SharpSLO">
+      <HintPath>..\lib\SharpSLO.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -69,6 +72,7 @@
   <ItemGroup>
     <Compile Include="Analysis.cs" />
     <Compile Include="Components\AmboComponent.cs" />
+    <Compile Include="Components\DecomposeMolecularComponent.cs" />
     <Compile Include="Components\MeshPassthruComponent.cs" />
     <Compile Include="Components\GridProximityComponent.cs" />
     <Compile Include="Components\JoinComponent.cs" />
@@ -91,6 +95,7 @@
     <Compile Include="Components\ExtractCurvesComponent.cs" />
     <Compile Include="Components\LaceDualComponent.cs" />
     <Compile Include="Components\ChebychevComponent.cs" />
+    <Compile Include="Components\SharpSLOComponent.cs" />
     <Compile Include="Components\StiffnessMethodComponent.cs" />
     <Compile Include="Components\TopOptComponent.cs" />
     <Compile Include="Components\WriteRobotSTRComponent.cs" />
@@ -98,6 +103,7 @@
     <Compile Include="MolecularParam.cs" />
     <Compile Include="MeshGoo.cs" />
     <Compile Include="MeshParam.cs" />
+    <Compile Include="SharpSLOExtensions.cs" />
     <Compile Include="TopOpt.cs" />
     <Compile Include="Types\Collections\MeshFaceList.cs" />
     <Compile Include="Types\Collections\MeshHalfedgeList.cs" />

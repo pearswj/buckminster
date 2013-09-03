@@ -5,6 +5,7 @@ using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 using Buckminster.Types;
 using Mesh = Buckminster.Types.Mesh;
+using Molecular = SharpSLO.Types.Molecular;
 
 namespace Buckminster
 {
@@ -71,13 +72,13 @@ namespace Buckminster
                 {
                     return BoundingBox.Empty;
                 }
-                return this.m_value.BoundingBox;
+                return this.m_value.GetBoundingBox();
             }
         }
         public override BoundingBox GetBoundingBox(Transform xform)
         {
             if (Value == null) return BoundingBox.Empty;
-            var pointCloud = new Rhino.Geometry.PointCloud(Value.listVertexes.Select(v => v.Coord));
+            var pointCloud = new Rhino.Geometry.PointCloud(Value.ToPoint3dArray());
             return pointCloud.GetBoundingBox(xform);
         }
         #endregion
@@ -87,11 +88,13 @@ namespace Buckminster
         {
             if (Value == null) { return null; }
             var copy = Value.Duplicate();
-            var pointCloud = new Rhino.Geometry.PointCloud(copy.listVertexes.Select(v => v.Coord));
+            var pointCloud = new Rhino.Geometry.PointCloud(copy.ToPoint3dArray());
             xmorph.Morph(pointCloud);
-            for (int i = 0; i < Value.listVertexes.Count; i++)
+            for (int i = 0; i < Value.Nodes.Count; i++)
             {
-                copy.listVertexes[i].Coord = pointCloud[i].Location;
+                copy.Nodes[i].X = pointCloud[i].Location.X;
+                copy.Nodes[i].Y = pointCloud[i].Location.Y;
+                copy.Nodes[i].Z = pointCloud[i].Location.Z;
             }
             return new MolecularGoo(copy);
         }
@@ -99,11 +102,13 @@ namespace Buckminster
         {
             if (Value == null) { return null; }
             var copy = Value.Duplicate();
-            var pointCloud = new Rhino.Geometry.PointCloud(copy.listVertexes.Select(v => v.Coord));
+            var pointCloud = new Rhino.Geometry.PointCloud(copy.ToPoint3dArray());
             pointCloud.Transform(xform);
-            for (int i = 0; i < Value.listVertexes.Count; i++)
+            for (int i = 0; i < Value.Nodes.Count; i++)
             {
-                copy.listVertexes[i].Coord = pointCloud[i].Location;
+                copy.Nodes[i].X = pointCloud[i].Location.X;
+                copy.Nodes[i].Y = pointCloud[i].Location.Y;
+                copy.Nodes[i].Z = pointCloud[i].Location.Z;
             }
             return new MolecularGoo(copy);
         }
@@ -140,7 +145,7 @@ namespace Buckminster
             // Cast from Buckminster.Mesh
             if (typeof(Mesh).IsAssignableFrom(source.GetType()))
             {
-                Value = new Molecular((Mesh)source);
+                Value = ((Mesh)source).ToMolecular();
                 return true;
             }
 
@@ -148,7 +153,7 @@ namespace Buckminster
             if (typeof(MeshGoo).IsAssignableFrom(source.GetType()))
             {
                 var target = (MeshGoo)source;
-                Value = new Molecular(target.Value);
+                Value = target.Value.ToMolecular();
                 return true;
             }
             
@@ -159,16 +164,16 @@ namespace Buckminster
                 var target = new Molecular(rmesh.Vertices.Count);
 
                 // add nodes
-                foreach (var point in rmesh.TopologyVertices)
+                foreach (var pt in rmesh.TopologyVertices)
                 {
-                    Buckminster.Types.Molecular.Node vertex = target.NewVertex(point);
+                    target.Add(pt.X, pt.Y, pt.Z);
                 }
 
                 // add bars (use edges from mesh)
                 for (int i = 0; i < rmesh.TopologyEdges.Count; i++)
                 {
                     var edge = rmesh.TopologyEdges.GetTopologyVertices(i);
-                    target.NewEdge(target.listVertexes[edge.I], target.listVertexes[edge.J]);
+                    target.Add(edge.I, edge.J);
                 }
 
                 Value = target;
@@ -192,11 +197,8 @@ namespace Buckminster
         public void DrawViewportWires(GH_PreviewWireArgs args)
         {
             if (Value == null) { return; }
-            foreach (var edge in Value.listEdges)
-            {
-                // TODO: handle colours and thicknesses here.
-                args.Pipeline.DrawLine(new Line(edge.StartVertex.Coord, edge.EndVertex.Coord), args.Color, args.Thickness);
-            }
+            // TODO: handle colours and thicknesses here.
+            args.Pipeline.DrawLines(Value.ToLineArray(), args.Color, args.Thickness);
             // maybe draw nodes too?
         }
         #endregion

@@ -115,11 +115,11 @@ namespace Buckminster
             foreach (Edge aEdge in theWorld.listEdges)
             {
                 //  x values allowed between -tension and +compression stresses
-                aVariable = theSolver.MakeNumVar(0.0, limit_tension, String.Format("TensionsInElement#{0:D4}", aEdge.Number));
+                aVariable = theSolver.MakeNumVar(0.0, double.PositiveInfinity, String.Format("TensionsInElement#{0:D4}", aEdge.Number));
                 listTensions.Add(aVariable);
                 theSolver.SetObjectiveCoefficient(aVariable, 2*joint_cost + aEdge.Length/limit_tension);
 
-                aVariable = theSolver.MakeNumVar(0.0, limit_compression, String.Format("CompressionInElement#{0:D4}", aEdge.Number));
+                aVariable = theSolver.MakeNumVar(0.0, double.PositiveInfinity, String.Format("CompressionInElement#{0:D4}", aEdge.Number));
                 listCompressions.Add(aVariable);
                 theSolver.SetObjectiveCoefficient(aVariable, 2*joint_cost + aEdge.Length/limit_compression);
             }
@@ -216,14 +216,14 @@ namespace Buckminster
                 foreach (Edge aEdge in theWorld.listEdges)
                 {
                     stress = listTensions[aEdge.Index].SolutionValue();
-                    if (Math.Abs(stress)<0.0000001) stress = -listCompressions[aEdge.Index].SolutionValue();
-                    if (Math.Abs(stress) < 0.0000001) // Unstressed
+                    if (Math.Abs(stress) < 1E-6) stress = -listCompressions[aEdge.Index].SolutionValue();
+                    if (Math.Abs(stress) < 1E-6) // Unstressed
                         aEdge.Colour = Color.FromArgb(100, Color.DarkGray);
                     else if (stress < 0.0) // Compression
                         aEdge.Colour = Color.FromArgb(100, Color.Red);
                     else // Tension
                         aEdge.Colour = Color.FromArgb(100, Color.Blue);
-                    aEdge.Radius = Math.Abs(stress) * 0.01;  //  Store Stress in Edge Radius
+                    aEdge.Radius = Math.Abs(stress);  //  Store Stress in Edge Radius
                     //System.Diagnostics.Debug.WriteLine(String.Format("Stress in Edge {0:D4} = {1:F6}", aEdge.Number, aEdge.Radius));
                 }
 
@@ -535,7 +535,7 @@ namespace Buckminster
                                     aEdge.Colour = Color.FromArgb(100, Color.Blue);
                                 else // Tension
                                     aEdge.Colour = Color.FromArgb(100, Color.Red);
-                                aEdge.Radius = Math.Abs(stress) * 0.01;  //  Store Stress in Edge Radius
+                                aEdge.Radius = Math.Abs(stress);  //  Store Stress in Edge Radius
                                 //System.Diagnostics.Debug.WriteLine(String.Format("Stress in Edge {0:D4} = {1:F6}", aEdge.Number, aEdge.Radius));
                             }
 
