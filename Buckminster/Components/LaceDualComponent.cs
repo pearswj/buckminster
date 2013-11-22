@@ -44,14 +44,14 @@ namespace Buckminster.Components
         {
             Mesh mesh = null;
             Mesh dual = null;
-            if (!DA.GetData<Mesh>(0, ref mesh)) { return; }
-            if (!DA.GetData<Mesh>(1, ref dual)) { return; }
+            if (!DA.GetData<Mesh>(0, ref dual)) { return; }
+            if (!DA.GetData<Mesh>(1, ref mesh)) { return; }
 
             if (!mesh.IsValid) { return; }
             if (!dual.IsValid) { return; }
 
             // no. faces on original mesh should match no. vertices on dual
-            if (mesh.Faces.Count != dual.Vertices.Count)
+            if (dual.Faces.Count != dual.Vertices.Count)
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Face/vertex mismatch. Please connect the original mesh and its dual.");
                 return;

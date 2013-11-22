@@ -34,7 +34,6 @@ namespace Buckminster.Components
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddPointParameter("Vertices", "V", "Mesh vertices", GH_ParamAccess.list);
-            pManager.AddColourParameter("Colours", "C", "Mesh vertex colours", GH_ParamAccess.list);
             pManager.AddVectorParameter("Normals", "N", "Mesh vertex normals", GH_ParamAccess.list);
             pManager.HideParameter(1);
         }
@@ -58,7 +57,7 @@ namespace Buckminster.Components
             }
 
             DA.SetDataList(0, points);
-            DA.SetDataList(2, normals);
+            DA.SetDataList(1, normals);
 
             //DA.SetDataList(0, mesh.Vertices.Select(v => v.Position));
             //DA.SetDataList(1, mesh.Vertices.Select(v => v.Normal));

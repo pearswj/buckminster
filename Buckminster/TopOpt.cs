@@ -113,11 +113,11 @@ namespace Buckminster
             foreach (Edge aEdge in theWorld.listEdges)
             {
                 //  x values allowed between -tension and +compression stresses
-                aVariable = theSolver.MakeNumVar(0.0, limit_tension, String.Format("TensionsInElement#{0:D4}", aEdge.Number));
+                aVariable = theSolver.MakeNumVar(0.0, double.PositiveInfinity, String.Format("TensionsInElement#{0:D4}", aEdge.Number));
                 listTensions.Add(aVariable);
                 theSolver.SetObjectiveCoefficient(aVariable, 2*joint_cost + aEdge.Length/limit_tension);
 
-                aVariable = theSolver.MakeNumVar(0.0, limit_compression, String.Format("CompressionInElement#{0:D4}", aEdge.Number));
+                aVariable = theSolver.MakeNumVar(0.0, double.PositiveInfinity, String.Format("CompressionInElement#{0:D4}", aEdge.Number));
                 listCompressions.Add(aVariable);
                 theSolver.SetObjectiveCoefficient(aVariable, 2*joint_cost + aEdge.Length/limit_compression);
             }

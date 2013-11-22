@@ -14,6 +14,8 @@
     <FileAlignment>512</FileAlignment>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <TargetFrameworkProfile />
+    <NoWin32Manifest>False</NoWin32Manifest>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug64|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
@@ -33,32 +35,26 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="GH_IO">
+      <HintPath>..\lib\GH_IO.dll</HintPath>
+    </Reference>
     <Reference Include="Google.OrTools.LinearSolver">
       <HintPath>..\lib\Google.OrTools.LinearSolver.dll</HintPath>
     </Reference>
+    <Reference Include="Grasshopper">
+      <HintPath>..\lib\Grasshopper.dll</HintPath>
+    </Reference>
     <Reference Include="MathNet.Numerics">
-      <HintPath>..\packages\MathNet.Numerics.2.5.0\lib\net40\MathNet.Numerics.dll</HintPath>
+      <HintPath>..\lib\MathNet.Numerics.dll</HintPath>
+    </Reference>
+    <Reference Include="RhinoCommon">
+      <HintPath>..\lib\RhinoCommon.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="RhinoCommon">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files\Rhinoceros 5.0 Evaluation (64-bit)\System\RhinoCommon.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Grasshopper">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files (x86)\Grasshopper for Rhino 5\Grasshopper.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="GH_IO">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files (x86)\Grasshopper for Rhino 5\GH_IO.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Analysis.cs" />
@@ -67,26 +63,15 @@
     <Compile Include="Components\JoinComponent.cs" />
     <Compile Include="Components\ExpandComponent.cs" />
     <Compile Include="Components\LaceProximityComponent.cs" />
-    <Compile Include="Components\MolecularPassthruComponent.cs" />
     <Compile Include="Components\OrthoComponent.cs" />
     <Compile Include="Components\KisComponent.cs" />
-    <Compile Include="Components\ExtrudeDynamicComponent.cs" />
     <Compile Include="Components\DeconstructMeshComponent.cs" />
-    <Compile Include="Components\OffsetDynamicComponent.cs" />
-    <Compile Include="Components\ExtractComponent.cs" />
-    <Compile Include="Components\ExtrudeComponent.cs" />
-    <Compile Include="Components\FlipComponent.cs" />
-    <Compile Include="Components\RibbonComponent.cs" />
-    <Compile Include="Components\DragosComponent.cs" />
     <Compile Include="Components\DualComponent.cs" />
     <Compile Include="Components\ClosedPolylinesComponent.cs" />
     <Compile Include="Components\EdgeLinesComponent.cs" />
-    <Compile Include="Components\ExtractCurvesComponent.cs" />
     <Compile Include="Components\LaceDualComponent.cs" />
     <Compile Include="Components\ChebychevComponent.cs" />
-    <Compile Include="Components\StiffnessMethodComponent.cs" />
     <Compile Include="Components\TopOptComponent.cs" />
-    <Compile Include="Components\WriteRobotSTRComponent.cs" />
     <Compile Include="MolecularGoo.cs" />
     <Compile Include="MolecularParam.cs" />
     <Compile Include="MeshGoo.cs" />
@@ -97,7 +82,6 @@
     <Compile Include="Types\Collections\MeshVertexList.cs" />
     <Compile Include="Types\Face.cs" />
     <Compile Include="Types\Halfedge.cs" />
-    <Compile Include="Components\DebugComponent.cs" />
     <Compile Include="Components\OffsetComponent.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -109,8 +93,6 @@
     <Compile Include="BuckminsterInfo.cs" />
     <Compile Include="Types\Mesh.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Components\VertexFacesComponent.cs" />
-    <Compile Include="Components\VertexPointsComponent.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -156,7 +138,7 @@
   </Target>
   -->
   <PropertyGroup>
-    <PostBuildEvent>Copy "$(TargetPath)" "C:\Users\Will\AppData\Roaming\Grasshopper\Libraries\$(ProjectName).gha"
+    <PostBuildEvent>Copy "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"
 </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>

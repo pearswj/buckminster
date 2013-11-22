@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 using Grasshopper.Kernel;
 using Buckminster.Types;
@@ -23,7 +24,7 @@ namespace Buckminster.Components
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddParameter(new MeshParam(), "Mesh", "M", "Input mesh", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Offset distance", "O", "Distance by which to offste the mesh", GH_ParamAccess.item, 1.0);
+            pManager.AddNumberParameter("Offset distance", "O", "Distance by which to offste the mesh", GH_ParamAccess.list, 1.0);
             //pManager[1].Optional = true;
         }
 
@@ -38,16 +39,36 @@ namespace Buckminster.Components
         /// <summary>
         /// This is the method that actually does the work.
         /// </summary>
-        /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
+        /// <param name="DA">The DA object is used to retrieve from inputs and
+        /// store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             Mesh mesh = null;
             if (!DA.GetData(0, ref mesh)) { return; }
 
-            double distance = double.NaN;
-            if (!DA.GetData<double>(1, ref distance)) { return; }
+            List<double> distance = new List<double>();
+            if (!DA.GetDataList<double>(1, distance)) { return; }
 
-            DA.SetData(0, mesh.Offset(distance));
+            // user has supplied an offset for each and every vertex
+            if (distance.Count == mesh.Vertices.Count)
+            {
+                DA.SetData(0, mesh.Offset(distance));
+            }
+            // user has supplied one offset only
+            else if (distance.Count == 1)
+            {
+                DA.SetData(0, mesh.Offset(distance[0]));
+            }
+            // in the case of a mismatch, we could do something smart... but
+            // it's easier just to spit out an error!
+            else
+            {
+                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error,
+                      "Length of offset list does not match mesh vertex list.");
+                return;
+            }
+
+            
         }
 
         /// <summary>
