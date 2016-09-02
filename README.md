@@ -1,31 +1,20 @@
-# da-thesis
+# Buckminster
 
-Private repository for Digital Architectonics thesis project
+Provides components for the generation of structural frames from free-form surfaces in Grasshopper (Rhino) using mesh operators, surface modelling techniques and structural layout optimisation.
 
-> Provides components for the generation of structural frames from free-form surfaces in *Rhino/Grasshopper* using mesh operators and surface modelling techniques.
+## SharpSLO
 
-## Instructions for Visual Studio 2012
+After cloning the repository, ensure that the SharpSLO submodule is [initialised and updated][submodules]. See the SharpSLO [README][slo_readme] for steps to resolve dependencies for that particular project.
 
-Clone the repository and load the solution file.
+## Building
 
-The *Math.Net Numerics* library is currently required for its matrix operations. Either install the package directly or configure NuGet to get the package during build.
+Open `Buckminster.sln` in Microsoft Visual Studio 2013 or later and build!
 
-### A. Direct Install
+***
 
-```
-PM> Install-Package MathNet.Numerics
-```
+Copyright © 2013, 2016 Will Pearson
 
-### B. During Build
+This project was developed in 2013 during my time at Bath University studying Digital Architectonics under the supervision of Paul Shepherd and Paul Richens.
 
-Tools > Library Package Manager > Package Manager Settings
-
-Make sure "*Allow NuGet to download missing packages during build*" is **checked**.
-
-Right click on the solution in the Solution Explorer and click "*Enable NuGet Package Restore*".
-
-Source: http://docs.nuget.org/docs/workflows/using-nuget-without-committing-packages
-
-## Copy Math.NET to Grasshopper Folder
-
-Once the Math.NET Numerics package has been downloaded, locate the DLL (`packages\MathNet.Numerics.2.5.0\lib\net40\MathNet.Numerics.dll`) and copy it to the Grasshopper Library folder (usually this is `AppData\Roaming\Grasshopper\Libraries\`).
+[submodules]: https://git-scm.com/book/en/v2/Git-Tools-Submodules#Cloning-a-Project-with-Submodules
+[slo_readme]: https://github.com/pearswj/SharpSLO/blob/master/README.md
