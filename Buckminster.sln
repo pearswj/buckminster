@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Buckminster", "Buckminster\Buckminster.csproj", "{91FAB2F8-3619-41B2-AFF3-F7716C86BB3C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Buckminster.Tests", "Buckminster.Tests\Buckminster.Tests.csproj", "{AE948A4C-481F-4602-97C5-B35E323EB11D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpSLO", "SharpSLO\SharpSLO\SharpSLO.csproj", "{ECEA4EE7-15B8-4A1D-B269-78CEF3D1FE58}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +28,12 @@ Global
 		{AE948A4C-481F-4602-97C5-B35E323EB11D}.Debug64|Any CPU.Build.0 = Debug|Any CPU
 		{AE948A4C-481F-4602-97C5-B35E323EB11D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE948A4C-481F-4602-97C5-B35E323EB11D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ECEA4EE7-15B8-4A1D-B269-78CEF3D1FE58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECEA4EE7-15B8-4A1D-B269-78CEF3D1FE58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECEA4EE7-15B8-4A1D-B269-78CEF3D1FE58}.Debug64|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECEA4EE7-15B8-4A1D-B269-78CEF3D1FE58}.Debug64|Any CPU.Build.0 = Debug|Any CPU
+		{ECEA4EE7-15B8-4A1D-B269-78CEF3D1FE58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECEA4EE7-15B8-4A1D-B269-78CEF3D1FE58}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

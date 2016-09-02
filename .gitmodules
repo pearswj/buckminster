@@ -1,0 +1,3 @@
+[submodule "SharpSLO"]
+	path = SharpSLO
+	url = https://github.com/pearswj/SharpSLO.git
