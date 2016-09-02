@@ -39,18 +39,12 @@
     <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Google.OrTools.LinearSolver">
-      <HintPath>..\lib\Google.OrTools.LinearSolver.dll</HintPath>
-    </Reference>
     <Reference Include="Grasshopper">
       <HintPath>$(AppData)\McNeel\Rhinoceros\5.0\Plug-ins\Grasshopper (b45a29b1-4343-4035-989e-044e8580d9cf)\0.9.76.0\Grasshopper.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MathNet.Numerics">
       <HintPath>..\packages\MathNet.Numerics.2.5.0\lib\net40\MathNet.Numerics.dll</HintPath>
-    </Reference>
-    <Reference Include="mosekdotnet">
-      <HintPath>C:\Program Files\Mosek\7\tools\platform\win64x86\bin\mosekdotnet.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -94,14 +88,12 @@
     <Compile Include="Components\ChebychevComponent.cs" />
     <Compile Include="Components\SharpSLOComponent.cs" />
     <Compile Include="Components\StiffnessMethodComponent.cs" />
-    <Compile Include="Components\TopOptComponent.cs" />
     <Compile Include="Components\WriteRobotSTRComponent.cs" />
     <Compile Include="MolecularGoo.cs" />
     <Compile Include="MolecularParam.cs" />
     <Compile Include="MeshGoo.cs" />
     <Compile Include="MeshParam.cs" />
     <Compile Include="SharpSLOExtensions.cs" />
-    <Compile Include="TopOpt.cs" />
     <Compile Include="Types\Collections\MeshFaceList.cs" />
     <Compile Include="Types\Collections\MeshHalfedgeList.cs" />
     <Compile Include="Types\Collections\MeshVertexList.cs" />

@@ -5,10 +5,6 @@ using System.Windows.Forms;
 
 using Grasshopper.Kernel;
 using Rhino.Geometry;
-//using Solver = Google.OrTools.LinearSolver.Solver;
-
-using Buckminster.Types;
-//using Mesh = Buckminster.Types.Mesh;
 
 using SharpSLO;
 
@@ -16,15 +12,15 @@ namespace Buckminster.Components
 {
     public class SharpSLOComponent : GH_Component
     {
-        private enum Mode
-        {
-            None,
-            FullyConnected,
-            MemberAdding
-        }
-        private Mode m_mode;
+        //private enum Mode
+        //{
+        //    None,
+        //    FullyConnected,
+        //    MemberAdding
+        //}
+        //private Mode m_mode;
         private List<string> m_output;
-        private bool m_mosek;
+        //private bool m_mosek;
         private SharpSLO.Optimiser m_optimiser;
         private double m_runtime;
         private SharpSLO.SolType m_solType;
@@ -35,10 +31,10 @@ namespace Buckminster.Components
         /// </summary>
         public SharpSLOComponent()
             : base("Buckminster's Topology Optimisation", "SharpSLO",
-                "Sheffield layout optimisation.",
+                "Structural layout optimisation.",
                 "Buckminster", "Analysis")
         {
-            m_mode = Mode.None;
+            //m_mode = Mode.None;
             m_output = new List<string>();
             m_solType = SharpSLO.SolType.Clp;
         }
