@@ -106,7 +106,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Types\Molecular.cs" />
     <Compile Include="Types\Vertex.cs" />
     <Compile Include="BuckminsterInfo.cs" />
     <Compile Include="Types\Mesh.cs" />
